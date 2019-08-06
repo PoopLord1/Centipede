@@ -7,6 +7,8 @@ import requests
 import urllib
 import base64
 from bs4 import BeautifulSoup
+import os
+import uuid
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede import user_agents
@@ -18,6 +20,8 @@ class DeepCopyPage(Limb):
     url_re = re.compile("([^/]+)?:?(//)?([^/]+)?([^$]*)")
 
     def __init__(self, config_dict):
+
+        self.config_dict = config_dict
 
         super(DeepCopyPage, self).__init__(config_dict)
 
@@ -55,6 +59,7 @@ class DeepCopyPage(Limb):
         proxies = {rand_proxy[2]: rand_proxy[0] + ":" + str(rand_proxy[1])}
         user_agent = user_agents.get_user_agent_string()
         html_content = requests.get(page, proxies=proxies, headers={"User-Agent": user_agent}).content
+        html_string = html_content.decode("utf-8")
         soup = BeautifulSoup(html_content, 'html.parser')
 
         images = soup.find_all("img")
@@ -84,10 +89,73 @@ class DeepCopyPage(Limb):
                 page_content = requests.get(global_url).content
                 link_urls_to_contents[url] = page_content
 
-        print(link_urls_to_contents.keys())
-
         data_package.saved_pages = []
         data_package.saved_pages.append((page, html_content, img_urls_to_contents, link_urls_to_contents, script_urls_to_contents))
+
+        # Create a folder, and then files for each of the linked resources
+        escaped_url = page.replace("/", "_").replace(":", "_")
+        saved_pages_root = ""
+        resource_folder = os.path.join(saved_pages_root, escaped_url)
+        os.mkdir(resource_folder)
+
+        for img_url in img_urls_to_contents:
+            uid = uuid.uuid4().hex
+            contents = img_urls_to_contents[img_url]
+
+            params_start_i = img_url.find("?")
+            if params_start_i != -1:
+                img_url = img_url[:params_start_i]
+            last_dot_i = img_url.rfind(".")
+            last_slash_i = img_url.rfind("/")
+            if last_dot_i > last_slash_i:
+                ext = img_url[last_dot_i+1:]
+
+                fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
+                fp.write(base64.decodebytes(contents))
+                fp.close()
+
+                html_string = html_string.replace(img_url, resource_folder + "\\" + uid + "." + ext)
+
+        for link_url in link_urls_to_contents:
+            uid = uuid.uuid4().hex
+            contents = link_urls_to_contents[link_url]
+
+            params_start_i = link_url.find("?")
+            if params_start_i != -1:
+                link_url = link_url[:params_start_i]
+            last_dot_i = link_url.rfind(".")
+            last_slash_i = link_url.rfind("/")
+            if last_dot_i > last_slash_i:
+                ext = link_url[last_dot_i + 1:]
+
+                fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
+                fp.write(contents)
+                fp.close()
+
+                html_string = html_string.replace(link_url, resource_folder + "\\" + uid + "." + ext)
+
+        for script_url in script_urls_to_contents:
+            uid = uuid.uuid4().hex
+            contents = script_urls_to_contents[script_url]
+
+            params_start_i = script_url.find("?")
+            if params_start_i != -1:
+                script_url = script_url[:params_start_i]
+            last_dot_i = script_url.rfind(".")
+            last_slash_i = script_url.rfind("/")
+            if last_dot_i > last_slash_i:
+                ext = script_url[last_dot_i + 1:]
+
+                fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
+                fp.write(contents)
+                fp.close()
+
+                html_string = html_string.replace(script_url, resource_folder + "\\" + uid + "." + ext)
+
+        # Save page data
+        fp = open(resource_folder + "\\html.html", "wb")
+        fp.write(html_string.encode("utf-8"))
+        fp.close()
 
 
 if __name__ == "__main__":
