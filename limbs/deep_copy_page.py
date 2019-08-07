@@ -9,6 +9,7 @@ import base64
 from bs4 import BeautifulSoup
 import os
 import uuid
+import time
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede import user_agents
@@ -18,6 +19,8 @@ from centipede.package import Package
 class DeepCopyPage(Limb):
 
     url_re = re.compile("([^/]+)?:?(//)?([^/]+)?([^$]*)")
+
+    IMAGE_EXTENSIONS = ["JPG", "JPEG", "PNG", "GIF", "BMP", "TIF", "TGA"]
 
     def __init__(self, config_dict):
 
@@ -55,6 +58,7 @@ class DeepCopyPage(Limb):
 
     def deep_copy_page(self, page, data_package):
 
+        time_start = time.time()
         rand_proxy = proxy_servers.pop()
         proxies = {rand_proxy[2]: rand_proxy[0] + ":" + str(rand_proxy[1])}
         user_agent = user_agents.get_user_agent_string()
@@ -88,6 +92,26 @@ class DeepCopyPage(Limb):
                 global_url = "".join(DeepCopyPage.globalize_url(page, url))
                 page_content = requests.get(global_url).content
                 link_urls_to_contents[url] = page_content
+
+        # Save all images directly linked from this page
+        anchors = soup.find_all("a")
+        img_links_to_contents = {}
+        for anchor in anchors:
+            href = anchor["href"]
+            last_question_mark = href.rfind("?")
+            if last_question_mark != -1:
+                href_no_params = href[:last_question_mark+1]
+            else:
+                href_no_params = href
+
+            last_dot_i = href_no_params.rfind(".")
+            ext = href_no_params[last_dot_i+1:]
+
+            if ext.upper() in DeepCopyPage.IMAGE_EXTENSIONS:
+                global_url = "".join(DeepCopyPage.globalize_url(page, href_no_params))
+                page_content = requests.get(global_url).content
+                img_links_to_contents[href] = page_content
+
 
         data_package.saved_pages = []
         data_package.saved_pages.append((page, html_content, img_urls_to_contents, link_urls_to_contents, script_urls_to_contents))
@@ -152,11 +176,31 @@ class DeepCopyPage(Limb):
 
                 html_string = html_string.replace(script_url, resource_folder + "\\" + uid + "." + ext)
 
+        # Save all images that are directly linked from this page
+        for img_link in img_links_to_contents:
+            uid = uuid.uuid4().hex
+            contents = img_links_to_contents[img_link]
+
+            params_start_i = img_link.find("?")
+            if params_start_i != -1:
+                img_link = img_link[:params_start_i]
+            last_dot_i = img_link.rfind(".")
+            last_slash_i = img_link.rfind("/")
+            if last_dot_i > last_slash_i:
+                ext = img_link[last_dot_i + 1:]
+
+                fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
+                fp.write(contents)
+                fp.close()
+
+                html_string = html_string.replace(img_link, resource_folder + "\\" + uid + "." + ext)
+
         # Save page data
         fp = open(resource_folder + "\\html.html", "wb")
         fp.write(html_string.encode("utf-8"))
         fp.close()
 
+        time_end = time.time()
 
 if __name__ == "__main__":
 
