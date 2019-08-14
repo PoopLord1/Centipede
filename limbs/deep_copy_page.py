@@ -1,26 +1,24 @@
 """
-deep_copy_page.py - A Limb that accepts
+deep_copy_page.py - A Limb that accepts any URL as input through Centipede framework, and deeply copies it to disk.
 """
 
 import re
 import requests
-import urllib
-import base64
 from bs4 import BeautifulSoup
 import os
 import uuid
-import time
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede import user_agents
 from centipede import proxy_servers
 from centipede.package import Package
 
+
 class DeepCopyPage(Limb):
 
     url_re = re.compile("([^/]+)?:?(//)?([^/]+)?([^$]*)")
 
-    IMAGE_EXTENSIONS = ["JPG", "JPEG", "PNG", "GIF", "BMP", "TIF", "TGA"]
+    FILETYPES_TO_COPY = ["JPG", "JPEG", "PNG", "GIF", "BMP", "TIF", "JS", "CSS", "MP4", "WEBM", "MPEG", "ICO", "RSS"]
 
     def __init__(self, config_dict):
 
@@ -54,153 +52,82 @@ class DeepCopyPage(Limb):
             else:
                 global_tokens.append(rel_token)
 
-        return global_tokens
+        return "".join(global_tokens)
 
     def deep_copy_page(self, page, data_package):
 
-        time_start = time.time()
-        rand_proxy = proxy_servers.pop()
-        proxies = {rand_proxy[2]: rand_proxy[0] + ":" + str(rand_proxy[1])}
-        user_agent = user_agents.get_user_agent_string()
-        html_content = requests.get(page, proxies=proxies, headers={"User-Agent": user_agent}).content
-        html_string = html_content.decode("utf-8")
-        soup = BeautifulSoup(html_content, 'html.parser')
-
-        images = soup.find_all("img")
-        img_urls_to_contents = {}
-        for image in images:
-            img_url = image["src"]
-            global_url = "".join(DeepCopyPage.globalize_url(page, img_url))
-            contents = urllib.request.urlopen(global_url).read()
-            image_contents = base64.b64encode(contents)
-            img_urls_to_contents[img_url] = image_contents
-
-        # Save all CSS files
-        links = soup.find_all("link")
-        link_urls_to_contents = {}
-        for link in links:
-            url = link["href"]
-            global_url = "".join(DeepCopyPage.globalize_url(page, url))
-            page_content = requests.get(global_url).content
-            link_urls_to_contents[url] = page_content
-
-        scripts = soup.find_all("script")
-        script_urls_to_contents = {}
-        for script in scripts:
-            if script.has_attr("src"):
-                url = script["src"]
-                global_url = "".join(DeepCopyPage.globalize_url(page, url))
-                page_content = requests.get(global_url).content
-                link_urls_to_contents[url] = page_content
-
-        # Save all images directly linked from this page
-        anchors = soup.find_all("a")
-        img_links_to_contents = {}
-        for anchor in anchors:
-            href = anchor["href"]
-            last_question_mark = href.rfind("?")
-            if last_question_mark != -1:
-                href_no_params = href[:last_question_mark+1]
-            else:
-                href_no_params = href
-
-            last_dot_i = href_no_params.rfind(".")
-            ext = href_no_params[last_dot_i+1:]
-
-            if ext.upper() in DeepCopyPage.IMAGE_EXTENSIONS:
-                global_url = "".join(DeepCopyPage.globalize_url(page, href_no_params))
-                page_content = requests.get(global_url).content
-                img_links_to_contents[href] = page_content
-
-
         data_package.saved_pages = []
-        data_package.saved_pages.append((page, html_content, img_urls_to_contents, link_urls_to_contents, script_urls_to_contents))
 
-        # Create a folder, and then files for each of the linked resources
+        # Create a folder to hold all of our resources
         escaped_url = page.replace("/", "_").replace(":", "_")
         saved_pages_root = ""
         resource_folder = os.path.join(saved_pages_root, escaped_url)
         os.mkdir(resource_folder)
 
-        for img_url in img_urls_to_contents:
-            uid = uuid.uuid4().hex
-            contents = img_urls_to_contents[img_url]
+        # Grab the raw html and parse it
+        proxies = {self.proxy_server[2]: self.proxy_server[0] + ":" + str(self.proxy_server[1])}
+        header = {"User-Agent": self.uagent,
+                  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                  "Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
+                  "Accept-Encoding": "none",
+                  "Accept-Language": "en-US,en;q=0.8",
+                  "Connection": "keep-alive"}
+        html_content = requests.get(page, proxies=proxies, headers=header).content
+        html_string = html_content.decode("utf-8")
+        soup = BeautifulSoup(html_content, 'html.parser')
 
-            params_start_i = img_url.find("?")
-            if params_start_i != -1:
-                img_url = img_url[:params_start_i]
-            last_dot_i = img_url.rfind(".")
-            last_slash_i = img_url.rfind("/")
-            if last_dot_i > last_slash_i:
-                ext = img_url[last_dot_i+1:]
+        # We will be analyzing resources linked from img, link, script, and a tags.
+        # (relevant file extensions can be found in DeepCopyLimb.FILETYPES_TO_COPY)
+        objects_to_copy = []
+        objects_to_copy.extend(soup.find_all("img"))
+        objects_to_copy.extend(soup.find_all("link"))
+        objects_to_copy.extend(soup.find_all("script"))
+        objects_to_copy.extend(soup.find_all("a"))
 
-                fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
-                fp.write(base64.decodebytes(contents))
-                fp.close()
+        for obj in objects_to_copy:
+            tag_type = obj.name
 
-                html_string = html_string.replace(img_url, resource_folder + "\\" + uid + "." + ext)
+            rel_url = ""
+            if tag_type == "img":
+                rel_url = obj["src"]
+            elif tag_type == "link":
+                rel_url = obj["href"]
+            elif tag_type == "script":
+                if obj.has_attr("src"):
+                    rel_url = obj["src"]
+            elif tag_type == "a":
+                rel_url = obj["href"]
 
-        for link_url in link_urls_to_contents:
-            uid = uuid.uuid4().hex
-            contents = link_urls_to_contents[link_url]
+            if rel_url:
+                global_url = DeepCopyPage.globalize_url(page, rel_url)
 
-            params_start_i = link_url.find("?")
-            if params_start_i != -1:
-                link_url = link_url[:params_start_i]
-            last_dot_i = link_url.rfind(".")
-            last_slash_i = link_url.rfind("/")
-            if last_dot_i > last_slash_i:
-                ext = link_url[last_dot_i + 1:]
+                # Grab the file extension
+                params_start_i = global_url.find("?")
+                if params_start_i != -1:
+                    global_url = global_url[:params_start_i]
+                last_dot_i = global_url.rfind(".")
+                last_slash_i = global_url.rfind("/")
+                if last_dot_i > last_slash_i:
+                    ext = global_url[last_dot_i + 1:]
 
-                fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
-                fp.write(contents)
-                fp.close()
+                    # If the file extension is relevant to us, save it in a new file
+                    if ext.upper() in DeepCopyPage.FILETYPES_TO_COPY:
+                        contents = requests.get(global_url).content
 
-                html_string = html_string.replace(link_url, resource_folder + "\\" + uid + "." + ext)
+                        uid = uuid.uuid4().hex
+                        fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
+                        fp.write(contents)
+                        fp.close()
 
-        for script_url in script_urls_to_contents:
-            uid = uuid.uuid4().hex
-            contents = script_urls_to_contents[script_url]
+                        # And update the original html to point to our saved resource
+                        html_string = html_string.replace(rel_url, resource_folder + "\\" + uid + "." + ext)
+                        data_package.saved_pages.append(global_url)
 
-            params_start_i = script_url.find("?")
-            if params_start_i != -1:
-                script_url = script_url[:params_start_i]
-            last_dot_i = script_url.rfind(".")
-            last_slash_i = script_url.rfind("/")
-            if last_dot_i > last_slash_i:
-                ext = script_url[last_dot_i + 1:]
-
-                fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
-                fp.write(contents)
-                fp.close()
-
-                html_string = html_string.replace(script_url, resource_folder + "\\" + uid + "." + ext)
-
-        # Save all images that are directly linked from this page
-        for img_link in img_links_to_contents:
-            uid = uuid.uuid4().hex
-            contents = img_links_to_contents[img_link]
-
-            params_start_i = img_link.find("?")
-            if params_start_i != -1:
-                img_link = img_link[:params_start_i]
-            last_dot_i = img_link.rfind(".")
-            last_slash_i = img_link.rfind("/")
-            if last_dot_i > last_slash_i:
-                ext = img_link[last_dot_i + 1:]
-
-                fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
-                fp.write(contents)
-                fp.close()
-
-                html_string = html_string.replace(img_link, resource_folder + "\\" + uid + "." + ext)
-
-        # Save page data
+        # Finally, save the modified HTML that points to our resources
         fp = open(resource_folder + "\\html.html", "wb")
         fp.write(html_string.encode("utf-8"))
         fp.close()
 
-        time_end = time.time()
 
 if __name__ == "__main__":
 
