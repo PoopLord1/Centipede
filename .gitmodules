@@ -1,0 +1,3 @@
+[submodule "limbs/common/personal_information"]
+	path = limbs/common/personal_information
+	url = https://github.com/PoopLord1/Personal_Information.git
