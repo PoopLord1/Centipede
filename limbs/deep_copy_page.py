@@ -60,19 +60,22 @@ class DeepCopyPage(Limb):
 
         # Create a folder to hold all of our resources
         escaped_url = page.replace("/", "_").replace(":", "_")
-        saved_pages_root = ""
+        saved_pages_root = "saved_pages"
         resource_folder = os.path.join(saved_pages_root, escaped_url)
         os.mkdir(resource_folder)
 
         # Grab the raw html and parse it
-        proxies = {self.proxy_server[2]: self.proxy_server[0] + ":" + str(self.proxy_server[1])}
-        header = {"User-Agent": self.uagent,
-                  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                  "Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
-                  "Accept-Encoding": "none",
-                  "Accept-Language": "en-US,en;q=0.8",
-                  "Connection": "keep-alive"}
-        html_content = requests.get(page, proxies=proxies, headers=header).content
+        if data_package.html:
+            html_content = data_package.html
+        else:
+            proxies = {self.proxy_server[2]: self.proxy_server[0] + ":" + str(self.proxy_server[1])}
+            header = {"User-Agent": self.uagent,
+                      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                      "Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
+                      "Accept-Encoding": "none",
+                      "Accept-Language": "en-US,en;q=0.8",
+                      "Connection": "keep-alive"}
+            html_content = requests.get(page, proxies=proxies, headers=header).content
         html_string = html_content.decode("utf-8")
         soup = BeautifulSoup(html_content, 'html.parser')
 
@@ -120,7 +123,7 @@ class DeepCopyPage(Limb):
                         fp.close()
 
                         # And update the original html to point to our saved resource
-                        html_string = html_string.replace(rel_url, resource_folder + "\\" + uid + "." + ext)
+                        html_string = html_string.replace(rel_url, uid + "." + ext)
                         data_package.saved_pages.append(global_url)
 
         # Finally, save the modified HTML that points to our resources

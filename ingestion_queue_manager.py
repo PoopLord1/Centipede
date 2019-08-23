@@ -6,9 +6,6 @@ import threading
 import os
 import sys
 
-print("From inside IngestionQueueManager: ")
-print(sys.path)
-
 
 class IngestionQueueManager(object):
 

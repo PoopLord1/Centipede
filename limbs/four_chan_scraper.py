@@ -100,6 +100,7 @@ class FourChanScraper(Limb):
         # Revisit any threads whose OPs are cut off, then revisit the front page of 4chan again
         data_package.linked_resources.extend([thread.link for thread in data_package.threads if not thread.abbreviated])
         data_package.linked_resources.append(board_page)
+        data_package.html = html_content
 
 
     def parse_thread_page(self, thread_page, data_package):

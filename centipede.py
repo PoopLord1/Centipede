@@ -1,5 +1,5 @@
 """
-ScrapeElsagate.py - the top-level code that governs the Elsagate pattern of web scraping.
+Centipede.py - top-level framework that instantiates and calls the limbs in order.
 """
 
 import sys
@@ -10,9 +10,6 @@ import os
 from centipede import resource_generator
 from centipede import text_notification_manager
 from centipede.package import Package
-
-# TODO - implement a queue for the urls to be processed
-# TODO - implement the ability to artificially add new urls to the queue, if they weren't in there before
 
 
 class Centipede(object):
@@ -29,11 +26,8 @@ class Centipede(object):
     def define_limbs(self, limb_classes):
         self.limb_classes = limb_classes
         common_config = self.config.GENERAL
-        print(self.limb_classes)
         for limb in self.limb_classes:
-            print(limb)
             class_name = str(limb.__name__)
-            print(class_name)
             sys.stdout.flush()
             specific_config = getattr(self.config, class_name)
             in_config = {**common_config, **specific_config}

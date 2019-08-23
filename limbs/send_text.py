@@ -30,7 +30,13 @@ class SendText(Limb):
         """
         get_send_flag_func = self.config_dict.get("get_text_flag")
         if get_send_flag_func:
-            send_text_flag = get_send_flag_func(data_package)
+
+            send_text_flag = False
+            try:
+                send_text_flag = get_send_flag_func(data_package)
+            except:
+                pass
+
             if send_text_flag:
 
                 message_body = self.config_dict["message_template"].format(url)

@@ -1,21 +1,19 @@
 from twilio.rest import Client
 
+from centipede.limbs.common.personal_information.twilio_constants import *
+
 import datetime
 import os
 
-ACCOUNT_ID = None
-AUTH_TOKEN = None
-MY_NUMBER = None
-TWILIO_NUMBER = None
-
 client = None
+client = Client(ACCOUNT_ID, AUTH_TOKEN)
 
 
 def init_with_config(config_module):
-    global ACCOUNT_ID, AUTH_TOKEN, MY_NUMBER, TWILIO_NUMBER, client
+    global ACCOUNT_ID, AUTH_TOKEN, DEST_NUMBER, TWILIO_NUMBER, client
     ACCOUNT_ID = config_module.TWILIO_ACCOUNT_ID
     AUTH_TOKEN = config_module.TWILIO_AUTH_TOKEN
-    MY_NUMBER = config_module.TWILIO_DEST_NUMBER
+    DEST_NUMBER = config_module.TWILIO_DEST_NUMBER
     TWILIO_NUMBER = config_module.TWILIO_SRC_NUMBER
 
     client = Client(ACCOUNT_ID, AUTH_TOKEN)
@@ -41,7 +39,7 @@ def send_text_alert(text_body):
     """
     message_params = {"body": "-\n\n" + str(text_body),
                       "from_": TWILIO_NUMBER,
-                      "to": MY_NUMBER}
+                      "to": DEST_NUMBER}
     client.messages.create(**message_params)
 
 
