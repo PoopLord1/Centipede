@@ -7,6 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import uuid
+import time
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede import user_agents
@@ -62,10 +63,10 @@ class DeepCopyPage(Limb):
         escaped_url = page.replace("/", "_").replace(":", "_")
         saved_pages_root = "saved_pages"
         resource_folder = os.path.join(saved_pages_root, escaped_url)
-        os.mkdir(resource_folder)
+        os.makedirs(resource_folder)
 
         # Grab the raw html and parse it
-        if data_package.html:
+        if hasattr(data_package, "html") and data_package.html:
             html_content = data_package.html
         else:
             proxies = {self.proxy_server[2]: self.proxy_server[0] + ":" + str(self.proxy_server[1])}
@@ -87,6 +88,7 @@ class DeepCopyPage(Limb):
         objects_to_copy.extend(soup.find_all("script"))
         objects_to_copy.extend(soup.find_all("a"))
 
+        saved_urls = set()
         for obj in objects_to_copy:
             tag_type = obj.name
 
@@ -101,7 +103,7 @@ class DeepCopyPage(Limb):
             elif tag_type == "a":
                 rel_url = obj["href"]
 
-            if rel_url:
+            if rel_url and rel_url not in saved_urls:
                 global_url = DeepCopyPage.globalize_url(page, rel_url)
 
                 # Grab the file extension
@@ -122,6 +124,8 @@ class DeepCopyPage(Limb):
                         fp.write(contents)
                         fp.close()
 
+                        saved_urls.add(rel_url)
+
                         # And update the original html to point to our saved resource
                         html_string = html_string.replace(rel_url, uid + "." + ext)
                         data_package.saved_pages.append(global_url)
@@ -136,6 +140,9 @@ if __name__ == "__main__":
 
     copy_limb = DeepCopyPage({"SPOOF_USER_AGENT": True, "USE_PROXY_SERVER": True})
     pack = Package()
+
+    start_time = time.time()
     copy_limb.scrape_from_url("http://boards.4channel.org/g/", pack)
+    print("Time taken: " + str(time.time() - start_time))
 
     print(pack.saved_pages)
