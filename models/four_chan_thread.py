@@ -11,6 +11,7 @@ class FourChanThread(object):
         self.post_datetime = None
         self.image_contents = None
         self.abbreviated = False
+        self.body_cut_off = False
         self.post_num = None
         self.link = ""
 
@@ -20,6 +21,7 @@ class FourChanThread(object):
             self.post_datetime = input_dict.get("post_datetime", None)
             self.image_contents = input_dict.get("image_content", "")
             self.abbreviated = input_dict.get("abbreviated", False)
+            self.body_cut_off = input_dict.get("body_cut_off", False)
             self.post_num = input_dict.get("post_num", None)
             self.link = input_dict.get("link", "")
 

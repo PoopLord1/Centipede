@@ -57,83 +57,103 @@ class DeepCopyPage(Limb):
 
     def deep_copy_page(self, page, data_package):
 
-        data_package.saved_pages = []
+        should_copy_page = True
+        is_conditional_copy = self.config_dict.get("is_conditional", False)
+        if is_conditional_copy:
+            has_should_copy_flag = "should_copy_flag" in self.config_dict
+            if has_should_copy_flag:
+                should_copy_func = self.config_dict["should_copy_flag"]
 
-        # Create a folder to hold all of our resources
-        escaped_url = page.replace("/", "_").replace(":", "_")
-        saved_pages_root = "saved_pages"
-        resource_folder = os.path.join(saved_pages_root, escaped_url)
-        os.makedirs(resource_folder)
+                try:
+                    should_copy_page = should_copy_func(data_package)
+                except Exception as e:
+                    self.config_dict["logger"].get_logger().error("Unable to run DeepCopyPage's should_copy_flag with the current data package.")
+                    self.config_dict["logger"].get_logger().error(str(e))
+                    should_copy_page = False
 
-        # Grab the raw html and parse it
-        if hasattr(data_package, "html") and data_package.html:
-            html_content = data_package.html
-        else:
-            proxies = {self.proxy_server[2]: self.proxy_server[0] + ":" + str(self.proxy_server[1])}
-            header = {"User-Agent": self.uagent,
-                      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                      "Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
-                      "Accept-Encoding": "none",
-                      "Accept-Language": "en-US,en;q=0.8",
-                      "Connection": "keep-alive"}
-            html_content = requests.get(page, proxies=proxies, headers=header).content
-        html_string = html_content.decode("utf-8")
-        soup = BeautifulSoup(html_content, 'html.parser')
+            else:
+                raise AttributeError("The config for DeepCopyPage shows that we should only copy the page under " +
+                                     "certain conditions, but does not define those conditions. Add a function " +
+                                     "definition under the key \'should_copy_flag\'")
 
-        # We will be analyzing resources linked from img, link, script, and a tags.
-        # (relevant file extensions can be found in DeepCopyLimb.FILETYPES_TO_COPY)
-        objects_to_copy = []
-        objects_to_copy.extend(soup.find_all("img"))
-        objects_to_copy.extend(soup.find_all("link"))
-        objects_to_copy.extend(soup.find_all("script"))
-        objects_to_copy.extend(soup.find_all("a"))
+        if should_copy_page:
+            data_package.saved_pages = []
 
-        saved_urls = set()
-        for obj in objects_to_copy:
-            tag_type = obj.name
+            # Create a folder to hold all of our resources
+            escaped_url = page.replace("/", "_").replace(":", "_")
+            saved_pages_root = "saved_pages"
+            resource_folder = os.path.join(saved_pages_root, escaped_url)
+            os.makedirs(resource_folder)
 
-            rel_url = ""
-            if tag_type == "img":
-                rel_url = obj["src"]
-            elif tag_type == "link":
-                rel_url = obj["href"]
-            elif tag_type == "script":
-                if obj.has_attr("src"):
+            # Grab the raw html and parse it
+            if hasattr(data_package, "html") and data_package.html:
+                html_content = data_package.html
+            else:
+                proxies = {self.proxy_server[2]: self.proxy_server[0] + ":" + str(self.proxy_server[1])}
+                header = {"User-Agent": self.uagent,
+                          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                          "Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
+                          "Accept-Encoding": "none",
+                          "Accept-Language": "en-US,en;q=0.8",
+                          "Connection": "keep-alive"}
+                html_content = requests.get(page, proxies=proxies, headers=header).content
+            html_string = html_content.decode("utf-8")
+            soup = BeautifulSoup(html_content, 'html.parser')
+
+            # We will be analyzing resources linked from img, link, script, and a tags.
+            # (relevant file extensions can be found in DeepCopyLimb.FILETYPES_TO_COPY)
+            objects_to_copy = []
+            objects_to_copy.extend(soup.find_all("img"))
+            objects_to_copy.extend(soup.find_all("link"))
+            objects_to_copy.extend(soup.find_all("script"))
+            objects_to_copy.extend(soup.find_all("a"))
+
+            saved_urls = set()
+            for obj in objects_to_copy:
+                tag_type = obj.name
+
+                rel_url = ""
+                if tag_type == "img":
                     rel_url = obj["src"]
-            elif tag_type == "a":
-                rel_url = obj["href"]
+                elif tag_type == "link":
+                    rel_url = obj["href"]
+                elif tag_type == "script":
+                    if obj.has_attr("src"):
+                        rel_url = obj["src"]
+                elif tag_type == "a":
+                    rel_url = obj["href"]
 
-            if rel_url and rel_url not in saved_urls:
-                global_url = DeepCopyPage.globalize_url(page, rel_url)
+                if rel_url and rel_url not in saved_urls:
+                    global_url = DeepCopyPage.globalize_url(page, rel_url)
 
-                # Grab the file extension
-                params_start_i = global_url.find("?")
-                if params_start_i != -1:
-                    global_url = global_url[:params_start_i]
-                last_dot_i = global_url.rfind(".")
-                last_slash_i = global_url.rfind("/")
-                if last_dot_i > last_slash_i:
-                    ext = global_url[last_dot_i + 1:]
+                    # Grab the file extension
+                    params_start_i = global_url.find("?")
+                    if params_start_i != -1:
+                        global_url = global_url[:params_start_i]
+                    last_dot_i = global_url.rfind(".")
+                    last_slash_i = global_url.rfind("/")
+                    if last_dot_i > last_slash_i:
+                        ext = global_url[last_dot_i + 1:]
 
-                    # If the file extension is relevant to us, save it in a new file
-                    if ext.upper() in DeepCopyPage.FILETYPES_TO_COPY:
-                        contents = requests.get(global_url).content
+                        # If the file extension is relevant to us, save it in a new file
+                        if ext.upper() in DeepCopyPage.FILETYPES_TO_COPY:
+                            contents = requests.get(global_url).content
 
-                        uid = uuid.uuid4().hex
-                        fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
-                        fp.write(contents)
-                        fp.close()
+                            uid = uuid.uuid4().hex
+                            fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
+                            fp.write(contents)
+                            fp.close()
 
-                        saved_urls.add(rel_url)
+                            saved_urls.add(rel_url)
 
-                        # And update the original html to point to our saved resource
-                        html_string = html_string.replace(rel_url, uid + "." + ext)
-                        data_package.saved_pages.append(global_url)
+                            # And update the original html to point to our saved resource
+                            html_string = html_string.replace(rel_url, uid + "." + ext)
+                            data_package.saved_pages.append(global_url)
 
-        # Finally, save the modified HTML that points to our resources
-        fp = open(resource_folder + "\\html.html", "wb")
-        fp.write(html_string.encode("utf-8"))
-        fp.close()
+            # Finally, save the modified HTML that points to our resources
+            fp = open(resource_folder + "\\html.html", "wb")
+            fp.write(html_string.encode("utf-8"))
+            fp.close()
 
 
 if __name__ == "__main__":

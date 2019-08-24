@@ -37,7 +37,7 @@ class IngestionQueueManager(object):
         """
         Returns the next resource URL to be consumed
         """
-        return self.ingestion_queue.pop()
+        return self.ingestion_queue.pop(0)
 
 
     def push_resource(self, url):

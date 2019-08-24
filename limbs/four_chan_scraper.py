@@ -69,6 +69,11 @@ class FourChanScraper(Limb):
             if pin_object:
                 pinned = True
 
+            body_cut_off = False
+            body_abbreviated_notice = thread_object.find("span", class_="abbr")
+            if body_abbreviated_notice:
+                body_cut_off = True
+
             abbreviated = False
             abbreviated_notice = thread_object.find("span", class_="summary")
             if abbreviated_notice:
@@ -84,13 +89,17 @@ class FourChanScraper(Limb):
             post_num_obj = thread_object.find("span", class_="postNum")
             post_num = post_num_obj.find_all("a")[1].get_text()
 
-            thread_permalink = board_page + "thread/" + str(post_num)
+            if board_page.endswith("/"):
+                thread_permalink = board_page + "thread/" + str(post_num)
+            else:
+                thread_permalink = board_page + "/thread/" + str(post_num)
 
             thread_attributes = {"is_pinned": pinned,
                                  "op_content": op_contents,
                                  "post_datetime": op_datetime,
                                  "image_content": image_contents,
                                  "abbreviated": abbreviated,
+                                 "body_cut_off": body_cut_off,
                                  "post_num": post_num,
                                  "link": thread_permalink}
             thread_obj = FourChanThread(thread_attributes)
@@ -98,7 +107,7 @@ class FourChanScraper(Limb):
             data_package.threads.append(thread_obj)
 
         # Revisit any threads whose OPs are cut off, then revisit the front page of 4chan again
-        data_package.linked_resources.extend([thread.link for thread in data_package.threads if not thread.abbreviated])
+        data_package.linked_resources.extend([thread.link for thread in data_package.threads if thread.body_cut_off])
         data_package.linked_resources.append(board_page)
         data_package.html = html_content
 
@@ -148,6 +157,7 @@ class FourChanScraper(Limb):
                              "post_datetime": op_datetime,
                              "image_content": image_contents,
                              "abbreviated": False,
+                             "body_cut_off": False,
                              "post_num": post_num,
                              "link": thread_permalink}
         thread_obj = FourChanThread(thread_attributes)

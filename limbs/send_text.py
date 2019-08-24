@@ -28,23 +28,28 @@ class SendText(Limb):
         :param data_package: the Package() object containing the data accrued from previous limbs
         :return: None
         """
+
         get_send_flag_func = self.config_dict.get("get_text_flag")
         if get_send_flag_func:
 
-            send_text_flag = False
-            try:
-                send_text_flag = get_send_flag_func(data_package)
-            except:
-                pass
+            for thread in data_package.threads:
 
-            if send_text_flag:
+                send_text_flag = False
+                try:
+                    send_text_flag = get_send_flag_func(thread)
+                except:
+                    pass
 
-                message_body = self.config_dict["message_template"].format(url)
-                message_params = {"body": "-\n\n" + message_body,
-                                  "from_": twilio_constants.TWILIO_NUMBER,
-                                  "to": twilio_constants.DEST_NUMBER}
-                client.messages.create(**message_params)
+                if send_text_flag:
 
+                    message_body = self.config_dict["message_template"].format(url)
+                    message_params = {"body": "-\n\n" + message_body,
+                                      "from_": twilio_constants.TWILIO_NUMBER,
+                                      "to": twilio_constants.DEST_NUMBER}
+                    client.messages.create(**message_params)
+
+        else:
+            raise AttributeError("The config dict for " + self.__class__ + " must contain an attribute 'get_text_flag'.")
 
 if __name__ == "__main__":
     config = {"get_text_flag": lambda package: package.is_malicious,
