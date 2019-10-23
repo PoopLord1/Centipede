@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import os
 import uuid
 import time
+from datetime import datetime
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede import user_agents
@@ -79,8 +80,14 @@ class DeepCopyPage(Limb):
         if should_copy_page:
             data_package.saved_pages = []
 
+            escaped_url = re.sub(".*?://", "", page)
+            print(escaped_url)
+            escaped_url = escaped_url.replace("/", "_").replace(":", "_")
+            now = datetime.now()
+            print(escaped_url)
+            escaped_url += "_" + now.strftime("%Y%m%d_%H%M%S")
+
             # Create a folder to hold all of our resources
-            escaped_url = page.replace("/", "_").replace(":", "_")
             saved_pages_root = "saved_pages"
             resource_folder = os.path.join(saved_pages_root, escaped_url)
             os.makedirs(resource_folder)
