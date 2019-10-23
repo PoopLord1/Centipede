@@ -3,8 +3,11 @@
 
 import re
 from spellchecker import SpellChecker
+from names_dataset import NameDataset
 
 spell_checker = SpellChecker()
+
+name_dataset = NameDataset()
 
 class TrieNode(object):
     """
@@ -83,6 +86,7 @@ def contains_trie_contents(string):
     for i in indices_of_words:
         has_contents_at_this_i = _starts_with_trie_contents(string[i:], trie_root)
         if has_contents_at_this_i:
+            print(string[i:])
             return True
 
     return False
@@ -170,7 +174,8 @@ def add_from_school_listing():
         school_name = m_re.sub("MIDDLE", school_name)
         school_name = e_re.sub("ELEMENTARY", school_name)
 
-        if len(spell_checker.unknown([school_name])):
+        # Only add the school if the name is not an English word or a first name.
+        if len(spell_checker.unknown([school_name])) and not name_dataset.search_first_name(school_name):
             add_to_trie(school_name)
 
 
@@ -187,10 +192,13 @@ def add_from_us_cities():
         state_abbr = state_abbr.replace("\"", "")
         state = state.replace("\"", "")
 
+
         add_to_trie(city.upper() + " " + state_abbr.upper())
         add_to_trie(city.upper() + ", " + state_abbr.upper())
         add_to_trie(city.upper() + " " + state.upper())
-        add_to_trie(city.upper())
+
+        if len(spell_checker.unknown([city.upper()])) and not name_dataset.search_first_name(city.upper()):
+            add_to_trie(city.upper())
 
 
 if __name__ == "__main__":

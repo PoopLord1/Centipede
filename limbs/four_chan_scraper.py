@@ -50,7 +50,6 @@ class FourChanScraper(Limb):
         proxies = {rand_proxy[2]: rand_proxy[0] + ":" + str(rand_proxy[1])}
         user_agent = user_agents.get_user_agent_string()
         html_content = requests.get(board_page, proxies=proxies, headers={"User-Agent": user_agent}).content
-        print(html_content)
         soup = BeautifulSoup(html_content, 'html.parser')
 
         thread_objects = soup.select("div.thread")

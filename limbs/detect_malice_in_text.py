@@ -21,7 +21,8 @@ class DetectMaliceInText(Limb):
 
         super(DetectMaliceInText, self).__init__(config_dict)
 
-        self.flair_model = flair.models.TextClassifier.load('\\imdb-v0.4.pt')
+        # self.flair_model = flair.models.TextClassifier.load('\\imdb-v0.4.pt')
+        self.flair_model = None
 
         wildcard_re = re.compile("^")
         self.associate_regex_with_method(wildcard_re, self.analyze_for_malice)
@@ -45,10 +46,10 @@ class DetectMaliceInText(Limb):
 
             for i, text_segment in enumerate(text_segments):
 
-                s = flair.data.Sentence(text_segment)
-                self.flair_model.predict(s)
-                results_dict = s.labels[0].to_dict()
-                print(results_dict)
+                # s = flair.data.Sentence(text_segment)
+                # self.flair_model.predict(s)
+                # results_dict = s.labels[0].to_dict()
+                # print(results_dict)
 
                 is_malicious = False
 

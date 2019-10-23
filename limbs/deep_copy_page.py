@@ -81,10 +81,8 @@ class DeepCopyPage(Limb):
             data_package.saved_pages = []
 
             escaped_url = re.sub(".*?://", "", page)
-            print(escaped_url)
             escaped_url = escaped_url.replace("/", "_").replace(":", "_")
             now = datetime.now()
-            print(escaped_url)
             escaped_url += "_" + now.strftime("%Y%m%d_%H%M%S")
 
             # Create a folder to hold all of our resources
