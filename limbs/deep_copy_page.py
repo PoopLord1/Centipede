@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import os
 import uuid
 import time
+import threading
 from datetime import datetime
 
 from centipede.limbs.abstract.Limb import Limb
@@ -56,6 +57,13 @@ class DeepCopyPage(Limb):
 
         return "".join(global_tokens)
 
+    def save_single_resource(self, url, uid, base_dir, ext):
+        contents = requests.get(url).content
+
+        fp = open(base_dir + "\\" + uid + "." + ext, "wb+")
+        fp.write(contents)
+        fp.close()
+
     def deep_copy_page(self, page, data_package):
 
         should_copy_page = True
@@ -68,14 +76,14 @@ class DeepCopyPage(Limb):
                 try:
                     should_copy_page = should_copy_func(data_package)
                 except Exception as e:
-                    self.config_dict["logger"].get_logger().error("Unable to run DeepCopyPage's should_copy_flag with the current data package.")
-                    self.config_dict["logger"].get_logger().error(str(e))
+                    self.config_dict["logger"].error("Unable to run DeepCopyPage's should_copy_flag with the current data package.")
+                    self.config_dict["logger"].error(str(e))
                     should_copy_page = False
 
             else:
                 raise AttributeError("The config for DeepCopyPage shows that we should only copy the page under " +
                                      "certain conditions, but does not define those conditions. Add a function " +
-                                     "definition under the key \'should_copy_flag\'")
+                                     "definition under the config key \'should_copy_flag\'")
 
         if should_copy_page:
             data_package.saved_pages = []
@@ -113,6 +121,8 @@ class DeepCopyPage(Limb):
             objects_to_copy.extend(soup.find_all("script"))
             objects_to_copy.extend(soup.find_all("a"))
 
+            saving_threads = []
+
             saved_urls = set()
             for obj in objects_to_copy:
                 tag_type = obj.name
@@ -142,18 +152,20 @@ class DeepCopyPage(Limb):
 
                         # If the file extension is relevant to us, save it in a new file
                         if ext.upper() in DeepCopyPage.FILETYPES_TO_COPY:
-                            contents = requests.get(global_url).content
-
                             uid = uuid.uuid4().hex
-                            fp = open(resource_folder + "\\" + uid + "." + ext, "wb+")
-                            fp.write(contents)
-                            fp.close()
+
+                            saving_thread = threading.Thread(target=self.save_single_resource, args=(global_url, uid, resource_folder, ext))
+                            saving_threads.append(saving_thread)
+                            saving_thread.start()
 
                             saved_urls.add(rel_url)
 
                             # And update the original html to point to our saved resource
                             html_string = html_string.replace(rel_url, uid + "." + ext)
                             data_package.saved_pages.append(global_url)
+
+            for saving_thread in saving_threads:
+                saving_thread.join()
 
             # Finally, save the modified HTML that points to our resources
             fp = open(resource_folder + "\\html.html", "wb")
