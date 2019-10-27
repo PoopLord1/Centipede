@@ -27,6 +27,8 @@ class DetectMaliceInText(Limb):
         wildcard_re = re.compile("^")
         self.associate_regex_with_method(wildcard_re, self.analyze_for_malice)
 
+        self.logger = config_dict["logger"]
+
         location_trie.add_from_school_listing()
         location_trie.add_from_us_cities()
 
@@ -38,7 +40,7 @@ class DetectMaliceInText(Limb):
         :return: None
         """
 
-        print("Now in DetectMaliceInText.analyze_for_malice")
+        self.logger.info("Now analyzing URL " + url + " for malice.")
 
         get_text_method = self.config_dict.get("get_text_method", None)
         if get_text_method:
@@ -56,12 +58,15 @@ class DetectMaliceInText(Limb):
                 # Check to see if the text segment mentions a school
                 if location_trie.contains_trie_contents(text_segment):
                     is_malicious = True
+                    self.logger.debug(data_package.threads[i].link + " was found to be malicious.")
+                else:
+                    self.logger.debug(data_package.threads[i].link + " is not malicious.")
 
                 data_package.threads[i].is_malicious = is_malicious
 
         else:
             raise AttributeError(
-                "The config dict for " + self.__class__ + " must contain an attribute 'get_text_flag'.")
+                "The config dict for " + str(self.__class__) + " must contain an attribute 'get_text_flag'.")
 
 
 if __name__ == "__main__":

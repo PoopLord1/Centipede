@@ -7,26 +7,20 @@ import logging
 eg_logger = None
 
 
-def init(level):
-    """
-    Sets the logging level (eg logging.DEBUG or logging.INFO) for the EG logger object
-    """
-    global eg_logger
-    if eg_logger is None:
-        logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=level)
-        eg_logger = logging
+def create_logger(class_name, level):
+    class_logger = logging.getLogger(class_name)
+    class_logger.setLevel(level)
 
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    class_logger.addHandler(ch)
 
-def get_logger():
-    """
-    Returns our logging object.
-    """
-    return eg_logger
-
+    return class_logger
 
 if __name__ == "__main__":
-    init(logging.WARNING)
-    eg_logger = get_logger()
-    eg_logger.debug("debug message")
-    eg_logger.info("info message")
-    eg_logger.critical("critical message")
+    logger = create_logger("logger_testing", logging.DEBUG)
+    logger.debug("debug message")
+    logger.info("info message")
+    logger.critical("critical message")

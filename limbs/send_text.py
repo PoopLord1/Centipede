@@ -1,10 +1,13 @@
 from twilio.rest import Client
 import re
+import logging
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede.package import Package
 
 from centipede.limbs.common.personal_information import twilio_constants
+from centipede import centipede_logger
+
 client = Client(twilio_constants.ACCOUNT_ID, twilio_constants.AUTH_TOKEN)
 
 
@@ -18,6 +21,8 @@ class SendText(Limb):
 
         super(SendText, self).__init__(config_dict)
 
+        self.logger = config_dict["logger"]
+
         wildcard_re = re.compile("^")
         self.associate_regex_with_method(wildcard_re, self.send_text)
 
@@ -29,6 +34,7 @@ class SendText(Limb):
         :return: None
         """
 
+        self.logger.info("Currently processing " + url)
         get_send_flag_func = self.config_dict.get("get_text_flag")
         if get_send_flag_func:
 
@@ -47,13 +53,15 @@ class SendText(Limb):
                                       "from_": twilio_constants.TWILIO_NUMBER,
                                       "to": twilio_constants.DEST_NUMBER}
                     client.messages.create(**message_params)
+                    self.logger.debug("We are sending a text for url " + url)
 
         else:
             raise AttributeError("The config dict for " + self.__class__ + " must contain an attribute 'get_text_flag'.")
 
 if __name__ == "__main__":
     config = {"get_text_flag": lambda package: package.is_malicious,
-              "message_template": "The thread found at {} was found to be malicious!"}
+              "message_template": "The thread found at {} was found to be malicious!",
+              "logger": centipede_logger.create_logger("send_text", logging.DEBUG)}
     send_text = SendText(config)
 
     pack = Package()

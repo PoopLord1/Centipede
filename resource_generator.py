@@ -1,8 +1,5 @@
 
 import logging
-import time
-import os
-import random
 
 from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import TimeoutException
@@ -17,8 +14,7 @@ class UrlGenerator(object):
     def __init__(self, config=None):
         self.resource_queue = ingestion_queue_manager.IngestionQueueManager(config)
 
-        centipede_logger.init(logging.INFO)
-        self.logger = centipede_logger.get_logger()
+        self.logger = centipede_logger.create_logger(self.__class__.__name__, logging.DEBUG)
 
     def iterate_pages(self):
         while self.resource_queue.has_next():

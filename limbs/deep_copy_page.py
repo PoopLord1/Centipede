@@ -9,12 +9,14 @@ import os
 import uuid
 import time
 import threading
+import logging
 from datetime import datetime
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede import user_agents
 from centipede import proxy_servers
 from centipede.package import Package
+from centipede import centipede_logger
 
 
 class DeepCopyPage(Limb):
@@ -39,6 +41,8 @@ class DeepCopyPage(Limb):
 
         wildcard_re = re.compile("^")
         self.associate_regex_with_method(wildcard_re, self.deep_copy_page)
+
+        self.logger = self.config_dict["logger"]
 
     @staticmethod
     def globalize_url(original_page, relative_url):
@@ -65,6 +69,9 @@ class DeepCopyPage(Limb):
         fp.close()
 
     def deep_copy_page(self, page, data_package):
+
+        start_time = time.time()
+        self.logger.info("Now processing " + page)
 
         should_copy_page = True
         is_conditional_copy = self.config_dict.get("is_conditional", False)
@@ -172,10 +179,16 @@ class DeepCopyPage(Limb):
             fp.write(html_string.encode("utf-8"))
             fp.close()
 
+        if should_copy_page:
+            self.logger.debug("Just finished copying " + page + " in " + str(time.time() - start_time) + " seconds.")
+        else:
+            self.logger.debug(page + " was not malicious, so we did not copy it.")
+
 
 if __name__ == "__main__":
 
-    copy_limb = DeepCopyPage({"SPOOF_USER_AGENT": True, "USE_PROXY_SERVER": True})
+    centipede_logger.init(logging.DEBUG)
+    copy_limb = DeepCopyPage({"SPOOF_USER_AGENT": True, "USE_PROXY_SERVER": True, "logger": centipede_logger.get_logger()})
     pack = Package()
 
     start_time = time.time()

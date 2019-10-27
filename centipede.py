@@ -3,13 +3,11 @@ Centipede.py - top-level framework that instantiates and calls the limbs in orde
 """
 
 import sys
-import re
-import logging
-import os
 
 from centipede import resource_generator
 from centipede import text_notification_manager
 from centipede.package import Package
+from centipede import centipede_logger
 
 
 class Centipede(object):
@@ -23,6 +21,9 @@ class Centipede(object):
         gen_config = {**common_config, **specific_config}
         self.page_generator = resource_generator.UrlGenerator(config=gen_config)
 
+        self.log_level = self.config.GENERAL["log_level"]
+
+
     def define_limbs(self, limb_classes):
         self.limb_classes = limb_classes
         common_config = self.config.GENERAL
@@ -30,8 +31,10 @@ class Centipede(object):
             class_name = str(limb.__name__)
             sys.stdout.flush()
             specific_config = getattr(self.config, class_name)
+            specific_config["logger"] = centipede_logger.create_logger(class_name, self.log_level)
             in_config = {**common_config, **specific_config}
             self.limbs.append(limb(in_config))
+
 
     @text_notification_manager.text_alert_on_exception
     def walk(self):

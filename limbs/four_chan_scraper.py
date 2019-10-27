@@ -31,6 +31,8 @@ class FourChanScraper(Limb):
         if config_dict.get("USE_PROXY_SERVER", False):
             self.proxy_server = proxy_servers.pop()
 
+        self.logger = config_dict["logger"]
+
         board_page_re = re.compile(".*4chan[nel]{0,3}\.org/.+/?$")
         self.associate_regex_with_method(board_page_re, self.parse_board_page)
 
@@ -45,7 +47,9 @@ class FourChanScraper(Limb):
         :param data_package: a Package object storing the threads' data
         :return: None
         """
-        print("Now in FourChanScraper.parse_board_page")
+
+        self.logger.debug("Now processing " + board_page)
+
         rand_proxy = proxy_servers.pop()
         proxies = {rand_proxy[2]: rand_proxy[0] + ":" + str(rand_proxy[1])}
         user_agent = user_agents.get_user_agent_string()
@@ -106,7 +110,6 @@ class FourChanScraper(Limb):
             thread_obj = FourChanThread(thread_attributes)
 
             data_package.threads.append(thread_obj)
-            print(thread_obj)
 
         # Revisit any threads whose OPs are cut off, then revisit the front page of 4chan again
         data_package.linked_resources.extend([thread.link for thread in data_package.threads if thread.body_cut_off])
@@ -121,6 +124,9 @@ class FourChanScraper(Limb):
         :param data_package: a Package instance storing the thread's data
         :return: None
         """
+
+        self.logger.debug("Now processing " + thread_page)
+
         rand_proxy = proxy_servers.pop()
         proxies = {rand_proxy[2]: rand_proxy[0] + ":" + str(rand_proxy[1])}
         user_agent = user_agents.get_user_agent_string()
