@@ -1,11 +1,13 @@
 from twilio.rest import Client
 import re
 import flair
+import logging
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede.package import Package
 from centipede.models.four_chan_thread import FourChanThread
 from centipede.limbs import location_trie
+from centipede import centipede_logger
 
 from centipede.limbs.common.personal_information import twilio_constants
 client = Client(twilio_constants.ACCOUNT_ID, twilio_constants.AUTH_TOKEN)
@@ -56,7 +58,7 @@ class DetectMaliceInText(Limb):
                 is_malicious = False
 
                 # Check to see if the text segment mentions a school
-                if location_trie.contains_trie_contents(text_segment):
+                if location_trie.contains_trie_contents(text_segment.upper()):
                     is_malicious = True
                     self.logger.debug(data_package.threads[i].link + " was found to be malicious.")
                 else:
@@ -70,10 +72,11 @@ class DetectMaliceInText(Limb):
 
 
 if __name__ == "__main__":
-    config = {"get_text_method": lambda package: [ thread.op_content for thread in package.threads if not thread.body_cut_off ]}
+    config = {"get_text_method": lambda package: [ thread.op_content for thread in package.threads if not thread.body_cut_off ],
+              "logger": centipede_logger.create_logger("DetectMaliceInText", logging.DEBUG)}
     detect_malice_limb = DetectMaliceInText(config)
 
     package = Package()
-    package.threads = [FourChanThread({"op_content": "I am literally going to kill everyone in Chicago tomorrow."})]
+    package.threads = [FourChanThread({"op_content": "If you live in wichita ks dont come to school tomorrow"})]
 
     detect_malice_limb.scrape_from_url("", package)
