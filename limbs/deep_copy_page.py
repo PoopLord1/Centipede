@@ -12,11 +12,11 @@ import threading
 import logging
 from datetime import datetime
 
-from centipede.limbs.abstract.Limb import Limb
-from centipede import user_agents
-from centipede import proxy_servers
-from centipede.package import Package
-from centipede import centipede_logger
+from limbs.abstract.Limb import Limb
+import user_agents
+import proxy_servers
+from package import Package
+import centipede_logger
 
 
 class DeepCopyPage(Limb):

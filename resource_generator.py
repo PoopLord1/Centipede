@@ -5,9 +5,9 @@ from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import TimeoutException
 from selenium import webdriver
 
-from centipede import ingestion_queue_manager
-from centipede import user_agents
-from centipede import centipede_logger
+import ingestion_queue_manager
+import user_agents
+import centipede_logger
 
 class UrlGenerator(object):
 

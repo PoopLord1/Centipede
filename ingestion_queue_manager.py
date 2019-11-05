@@ -6,6 +6,7 @@ import threading
 import os
 import sys
 
+from job import Job
 
 class IngestionQueueManager(object):
 
@@ -17,6 +18,13 @@ class IngestionQueueManager(object):
 
         self.autosave_thread = None
         self.batch_ingest_thread = None
+
+        self.is_periodic = config["periodic"]
+        self.period_seconds = -1;
+        if self.is_periodic:
+            self.period_seconds = config["period_seconds"]
+            for data_point in config["periodic_urls"]:
+                self.periodic_jobs.append( Job(data_point) )
 
     def _load_autosave(self):
         base_dir = self.config["INGESTION_QUEUE_AUTOSAVE_BASE_DIR"]
@@ -37,6 +45,7 @@ class IngestionQueueManager(object):
         """
         Returns the next resource URL to be consumed
         """
+        
         return self.ingestion_queue.pop(0)
 
 
