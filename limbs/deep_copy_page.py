@@ -12,11 +12,11 @@ import threading
 import logging
 from datetime import datetime
 
-from limbs.abstract.Limb import Limb
-import user_agents
-import proxy_servers
-from package import Package
-import centipede_logger
+from centipede.limbs.abstract.Limb import Limb
+from centipede import user_agents
+from centipede import proxy_servers
+from centipede.package import Package
+from centipede import centipede_logger
 
 
 class DeepCopyPage(Limb):
@@ -187,12 +187,11 @@ class DeepCopyPage(Limb):
 
 if __name__ == "__main__":
 
-    centipede_logger.init(logging.DEBUG)
-    copy_limb = DeepCopyPage({"SPOOF_USER_AGENT": True, "USE_PROXY_SERVER": True, "logger": centipede_logger.get_logger()})
+    copy_limb = DeepCopyPage({"SPOOF_USER_AGENT": True, "USE_PROXY_SERVER": True, "logger": centipede_logger.create_logger("DeepCopyPage", logging.DEBUG)})
     pack = Package()
 
     start_time = time.time()
-    copy_limb.scrape_from_url("http://boards.4channel.org/g/", pack)
+    copy_limb.scrape_from_url("http://boards.4chan.org/pol/thread/231726938", pack)
     print("Time taken: " + str(time.time() - start_time))
 
     print(pack.saved_pages)

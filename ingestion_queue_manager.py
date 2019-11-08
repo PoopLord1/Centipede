@@ -6,7 +6,7 @@ import threading
 import os
 import sys
 
-from job import Job
+from centipede.job import Job
 
 class IngestionQueueManager(object):
 
@@ -14,7 +14,8 @@ class IngestionQueueManager(object):
         # A list of urls that are in queue to be scraped.
         self.config = config
         self.queue_lock = threading.Lock()
-        self.ingestion_queue = self._load_autosave()
+        self.ingestion_queue = []
+        # No longer load from autosave
 
         self.autosave_thread = None
         self.batch_ingest_thread = None
@@ -24,7 +25,9 @@ class IngestionQueueManager(object):
         if self.is_periodic:
             self.period_seconds = config["period_seconds"]
             for data_point in config["periodic_urls"]:
-                self.periodic_jobs.append( Job(data_point) )
+                new_job = Job(data_point, True)
+                new_job.set_period(self.period_seconds)
+                self.ingestion_queue.append(new_job)
 
     def _load_autosave(self):
         base_dir = self.config["INGESTION_QUEUE_AUTOSAVE_BASE_DIR"]
@@ -49,12 +52,13 @@ class IngestionQueueManager(object):
         return self.ingestion_queue.pop(0)
 
 
-    def push_resource(self, url):
+    def push_data_point(self, url):
         """
         Adds a resource to the ingestion queue.
         """
         self.queue_lock.acquire()
-        self.ingestion_queue.append(url)
+        new_job = Job(url, False)
+        self.ingestion_queue.append(new_job)
         self.queue_lock.release()
 
 
@@ -62,8 +66,12 @@ class IngestionQueueManager(object):
         """
         Appends multiple new resources to the ingestion queue
         """
+        new_jobs = []
+        for resource in resources:
+            new_jobs.append(Job(resource, False))
+
         self.queue_lock.acquire()
-        self.ingestion_queue.extend(resources)
+        self.ingestion_queue.extend(new_jobs)
         self.queue_lock.release()
 
 

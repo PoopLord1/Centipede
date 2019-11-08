@@ -1,6 +1,6 @@
 from twilio.rest import Client
 
-from limbs.common.personal_information.twilio_constants import *
+from centipede.limbs.common.personal_information.twilio_constants import *
 
 import datetime
 import os
