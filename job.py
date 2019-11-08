@@ -21,7 +21,3 @@ class Job(object):
             return True
         else:
             return False
-
-    def repeat(self):
-        new_job = Job(self.data_point)
-        return new_job

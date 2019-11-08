@@ -48,8 +48,20 @@ class IngestionQueueManager(object):
         """
         Returns the next resource URL to be consumed
         """
-        
-        return self.ingestion_queue.pop(0)
+
+        next_job = None
+
+        if self.ingestion_queue[0].is_ready():
+            next_job = self.ingestion_queue.pop(0)
+
+            if next_job.repeat:
+                new_job = Job(next_job.data_point, next_job.repeat)
+                new_job.set_period(next_job.period)
+                self.queue_lock.acquire()
+                self.ingestion_queue.append(new_job)
+                self.queue_lock.release()
+
+        return next_job
 
 
     def push_data_point(self, url):

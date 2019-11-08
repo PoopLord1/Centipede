@@ -44,7 +44,8 @@ class Centipede(object):
         for job in self.job_generator.iterate_pages():
             package = Package()
 
-            for limb in self.limbs:
-                package = limb.scrape_from_url(job.data_point, package)
+            if job:
+                for limb in self.limbs:
+                    package = limb.scrape_from_url(job.data_point, package)
 
             self.job_generator.add_to_queue(package.get_linked_resources())
