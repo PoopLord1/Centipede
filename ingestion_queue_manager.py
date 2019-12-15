@@ -4,7 +4,6 @@ IngestionQueueManager - Manages, autosaves, and adds to the queue of resources t
 
 import threading
 import os
-import sys
 
 from centipede.job import Job
 
@@ -21,13 +20,16 @@ class IngestionQueueManager(object):
         self.batch_ingest_thread = None
 
         self.is_periodic = config["periodic"]
-        self.period_seconds = -1;
-        if self.is_periodic:
+        self.period_seconds = -1
+
+        if "period_seconds" in config:
             self.period_seconds = config["period_seconds"]
-            for data_point in config["periodic_urls"]:
-                new_job = Job(data_point, True)
-                new_job.set_period(self.period_seconds)
-                self.ingestion_queue.append(new_job)
+
+        for data_point in config["seed_urls"]:
+            new_job = Job(data_point, self.is_periodic)
+            new_job.set_period(self.period_seconds)
+            self.ingestion_queue.append(new_job)
+
 
     def _load_autosave(self):
         base_dir = self.config["INGESTION_QUEUE_AUTOSAVE_BASE_DIR"]
