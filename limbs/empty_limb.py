@@ -21,7 +21,7 @@ class EmptyLimb(Limb):
 
         super(EmptyLimb, self).__init__(config_dict)
 
-        self.logger = config_dict["logger"]
+        # self.logger = config_dict["logger"]
 
         wildcard_re = re.compile("^")
         self.associate_regex_with_method(wildcard_re, self.ingest)
@@ -34,7 +34,8 @@ class EmptyLimb(Limb):
         :return: None
         """
 
-        self.logger.info("Currently processing " + url + " with an empty limb. No action has been taken.")
+        print("Currently processing " + url + " with an empty limb. No action has been taken.")
+        # self.logger.info("Currently processing " + url + " with an empty limb. No action has been taken.")
 
 if __name__ == "__main__":
     config = {"logger": centipede_logger.create_logger("empty_limb", logging.DEBUG)}
