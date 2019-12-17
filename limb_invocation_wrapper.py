@@ -3,6 +3,8 @@ import socket
 import dill as pickle
 import threading
 
+from centipede import centipede_logger
+
 BROKER_IP = "127.0.0.1"
 LIMB_IP = "127.0.0.1"
 LIMB_DATA_PORT = 12344
@@ -93,6 +95,10 @@ class LimbInvoker(object):
             # Some more clauses here, like timing stuff? idk
 
 
-def create_limb(limb_class, in_config, broker_port, limb_port):
+def create_limb(limb_class, config_data, broker_port, limb_port):
+
+    in_config = pickle.loads(config_data)
+    in_config["logger"] = centipede_logger.create_logger(str(limb_class.__name__), in_config["log_level"])
+
     invoker = LimbInvoker(limb_class, in_config, broker_port)
     invoker.run_ingestion_server(limb_port)

@@ -2,8 +2,6 @@
 Centipede.py - top-level framework that instantiates and calls the limbs in order.
 """
 
-import time
-
 from centipede import resource_generator
 from centipede import text_notification_manager
 from centipede.package import Package
@@ -11,6 +9,7 @@ from centipede import centipede_logger
 from centipede import limb_invocation_wrapper
 from centipede import centipede_broker
 
+import pickle
 import multiprocessing
 
 
@@ -43,15 +42,12 @@ class Centipede(object):
         for i, limb in enumerate(self.limb_classes):
             class_name = str(limb.__name__)
             specific_config = getattr(self.config, class_name)
-            if ("log_level" in specific_config):
-                specific_config["logger"] = centipede_logger.create_logger(class_name, specific_config["log_level"])
-            else:
-                specific_config["logger"] = centipede_logger.create_logger(class_name, self.log_level)
+
             in_config = {**common_config, **specific_config}
+            config_data = pickle.dumps(in_config)
 
             limb_port = LIMB_PORT_RANGE_START + i
-            # new_limb_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb, args=(limb, in_config, BROKER_PORT, limb_port))
-            new_limb_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb, args=(limb, None, BROKER_PORT, limb_port))
+            new_limb_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb, args=(limb, config_data, BROKER_PORT, limb_port))
             new_limb_process.start()
             self.limb_processes.append(new_limb_process)
 
