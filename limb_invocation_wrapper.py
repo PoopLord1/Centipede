@@ -25,7 +25,6 @@ class LimbInvoker(object):
         limb_obj = limb_class(in_config)
 
         # self.outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.outgoing_data_client.connect((BROKER_IP, broker_port))
 
         while True:
 
@@ -43,8 +42,14 @@ class LimbInvoker(object):
             if data_point and package:
                 limb_obj.scrape_from_url(data_point, package)
 
-                pickled_package = pickle.dumps(package)
-                # self.outgoing_data_client.sendall(pickled_package)
+                delivery = {}
+                delivery["package"] = package
+                delivery["limb_name"] = limb_class.__name__
+                pickled_package = pickle.dumps(delivery)
+                self.outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.outgoing_data_client.connect((BROKER_IP, broker_port))
+                self.outgoing_data_client.sendall(pickled_package)
+                self.outgoing_data_client.close()
 
     def run_ingestion_server(self, limb_port):
         incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
