@@ -2,6 +2,7 @@ from twilio.rest import Client
 import re
 import time
 import logging
+import time
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede.package import Package
@@ -20,7 +21,7 @@ class SleepLimb(Limb):
     def __init__(self, config_dict):
         self.config_dict = config_dict
 
-        super(EmptyLimb, self).__init__(config_dict)
+        super(SleepLimb, self).__init__(config_dict)
 
         self.logger = config_dict["logger"]
 
@@ -35,6 +36,7 @@ class SleepLimb(Limb):
         :return: None
         """
 
+        time.sleep(5)
         self.logger.info("Currently processing " + url + " with an empty limb. No action has been taken.")
 
 if __name__ == "__main__":
