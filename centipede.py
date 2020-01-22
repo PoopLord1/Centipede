@@ -5,16 +5,7 @@ Centipede.py - top-level framework that instantiates and calls the limbs in orde
 from centipede import resource_generator
 from centipede import text_notification_manager
 from centipede.package import Package
-from centipede import centipede_logger
-from centipede import limb_invocation_wrapper
 from centipede import centipede_broker
-
-import pickle
-import multiprocessing
-
-
-BROKER_PORT = 10000
-LIMB_PORT_RANGE_START = 10001
 
 
 class Centipede(object):
@@ -22,8 +13,6 @@ class Centipede(object):
         self.limb_classes = []
         self.limbs = []
         self.config = config
-
-        self.limb_processes = []
 
         common_config = self.config.GENERAL
         specific_config = getattr(self.config, "UrlGenerator")
@@ -44,14 +33,7 @@ class Centipede(object):
             specific_config = getattr(self.config, class_name)
 
             in_config = {**common_config, **specific_config}
-            config_data = pickle.dumps(in_config)
-
-            limb_port = LIMB_PORT_RANGE_START + i
-            new_limb_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb, args=(limb, config_data, BROKER_PORT, limb_port))
-            new_limb_process.start()
-            self.limb_processes.append(new_limb_process)
-
-            self.broker.associate_port_with_limb(limb_port, limb)
+            self.broker.create_limb(limb, in_config)
 
 
     @text_notification_manager.text_alert_on_exception

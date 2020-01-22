@@ -69,7 +69,6 @@ class LimbInvoker(object):
                 conn, addr = incoming_data_server.accept()
                 continue
 
-
             if data:
                 inc_object = pickle.loads(data)
 
@@ -81,7 +80,6 @@ class LimbInvoker(object):
                         self.incoming_package = new_package
                         self.incoming_data_point = inc_object["data_point"]
                         self.ingest_data_lock.release()
-                        # conn.sendall(b"enqueued")
 
                 elif inc_object["type"] == "is_working":
                     pass

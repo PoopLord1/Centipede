@@ -96,7 +96,7 @@ class DeepCopyPage(Limb):
             data_package.saved_pages = []
 
             escaped_url = re.sub(".*?://", "", page)
-            escaped_url = escaped_url.replace("/", "_").replace(":", "_")
+            escaped_url = escaped_url.replace("/", "_").replace(":", "_").replace("?", "_").replace("=", "_")
             now = datetime.now()
             escaped_url += "_" + now.strftime("%Y%m%d_%H%M%S")
 
@@ -193,5 +193,3 @@ if __name__ == "__main__":
     start_time = time.time()
     copy_limb.scrape_from_url("http://boards.4chan.org/pol/thread/231726938", pack)
     print("Time taken: " + str(time.time() - start_time))
-
-    print(pack.saved_pages)
