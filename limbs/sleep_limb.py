@@ -36,12 +36,14 @@ class SleepLimb(Limb):
         :return: None
         """
 
-        time.sleep(5)
         self.logger.info("Currently processing " + url + " with an empty limb. No action has been taken.")
+        # time.sleep(5)
+        self.logger.info("\t Done.")
+
 
 if __name__ == "__main__":
     config = {"logger": centipede_logger.create_logger("empty_limb", logging.DEBUG)}
-    send_text = EmptyLimb(config)
+    send_text = SleepLimb(config)
 
     pack = Package()
     send_text.scrape_from_url("", pack)
