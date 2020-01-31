@@ -21,10 +21,10 @@ class LimbInvoker(object):
         self.limb_thread = threading.Thread(target=self.run_ingestion_process, args=(limb_class, config, broker_port, ))
         self.limb_thread.start()
 
+        self.process_id = None
+
     def run_ingestion_process(self, limb_class, in_config, broker_port):
         limb_obj = limb_class(in_config)
-
-        # self.outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         while True:
 
@@ -45,11 +45,13 @@ class LimbInvoker(object):
                 delivery = {}
                 delivery["package"] = package
                 delivery["limb_name"] = limb_class.__name__
+                delivery["process_id"] = self.process_id
                 pickled_package = pickle.dumps(delivery)
                 self.outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.outgoing_data_client.connect((BROKER_IP, broker_port))
                 self.outgoing_data_client.sendall(pickled_package)
                 self.outgoing_data_client.close()
+
 
     def run_ingestion_server(self, limb_port):
         incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -71,6 +73,9 @@ class LimbInvoker(object):
 
             if data:
                 inc_object = pickle.loads(data)
+
+                if not self.process_id:
+                    self.process_id = inc_object["process_id"]
 
                 if inc_object["type"] == "job":
                     if not self.incoming_data_point and not self.incoming_package:

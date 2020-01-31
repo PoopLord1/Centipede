@@ -35,7 +35,7 @@ class Centipede(object):
             specific_config = getattr(self.config, class_name)
 
             in_config = {**common_config, **specific_config}
-            self.broker.create_limb(limb, in_config)
+            self.broker.create_process(limb, in_config)
 
 
     #@text_notification_manager.text_alert_on_exception
