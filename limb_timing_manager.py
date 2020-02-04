@@ -4,6 +4,7 @@ from centipede.ring_buffer import RingBuffer
 
 TIMING_HISTORY = 15
 
+
 class TimingManager(object):
     def __init__(self):
         self.incoming_jobs = RingBuffer(TIMING_HISTORY)
@@ -53,3 +54,7 @@ class TimingManager(object):
             avg = sum(time_intervals) / len(time_intervals)
 
         return avg
+
+
+    def reset_timing_info(self, limb):
+        self.limb_to_timings[limb] = RingBuffer(TIMING_HISTORY)
