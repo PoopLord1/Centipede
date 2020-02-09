@@ -43,7 +43,8 @@ class LimbInvoker(object):
                 limb_obj.scrape_from_url(data_point, package)
 
                 delivery = {}
-                delivery["package"] = package
+                delivery["package_data"] = package
+                delivery["data_point"] = data_point
                 delivery["limb_name"] = limb_class.__name__
                 delivery["process_id"] = self.process_id
                 pickled_package = pickle.dumps(delivery)

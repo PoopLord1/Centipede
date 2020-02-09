@@ -83,24 +83,32 @@ class CentipedeBroker(object):
         next_limb = self.limb_to_next_limb[limb_name]
         # If there is a next limb, put the data in the queue for the next limb
         if next_limb:
+
+            next_limb_is_slow = self.timing_manager.is_limb_slow(limb_name, next_limb)
+            next_limb_name = next_limb.__name__
+            if next_limb_is_slow or len(self.limb_to_queue[next_limb_name]) > 3:
+                self.create_process(next_limb)
+                self.timing_manager.reset_timing_info(next_limb)
+
             free_process = None
-            for process in self.limb_to_process_ids[next_limb]:
+            for process in self.limb_to_process_ids[next_limb_name]:
                 if not self.process_id_is_busy[process]:
                     free_process = process
                     break
 
             if free_process:
-                self.timing_manager.record_limb_input(limb_name)
+                self.timing_manager.record_limb_input(next_limb_name)
 
                 new_data = data_obj.copy()
-                new_data["limb_name"] = next_limb
+                new_data["limb_name"] = next_limb_name
                 new_data["process_id"] = free_process
+                new_data["type"] = "job"
 
                 self.socket_handler.send_job(free_process, new_data)
             else:
-                self.limb_to_queue_lock[limb_name].acquire()
-                self.limb_to_queue[next_limb].append(data)
-                self.limb_to_queue_lock[limb_name].release()
+                self.limb_to_queue_lock[next_limb_name].acquire()
+                self.limb_to_queue[next_limb_name].append(data)
+                self.limb_to_queue_lock[next_limb_name].release()
 
         # Send another job to that limb if there is one in the queue
         if self.limb_to_queue[limb_name]:
@@ -110,6 +118,7 @@ class CentipedeBroker(object):
 
             delivery["limb_name"] = data_obj["limb_name"]
             delivery["process_id"] = data_obj["process_id"]
+            delivery["type"] = "job"
 
             self.timing_manager.record_limb_input(limb_name)
             self.socket_handler.send_job(data_obj["process_id"], delivery)
@@ -135,7 +144,6 @@ class CentipedeBroker(object):
         if first_limb_is_slow or len(self.limb_to_queue[first_limb_name]) > 3:
             self.create_process(self.first_limb)
             self.timing_manager.reset_timing_info(self.first_limb)
-
 
         free_process = None
         for process_id in self.limb_to_process_ids[first_limb_name]:

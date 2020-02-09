@@ -33,7 +33,7 @@ class TimingManager(object):
             if num_prev_samples > SAMPLES_NEEDED_FOR_TIMING:
                 avg_prev_time = self.get_average_time_interval(self.incoming_jobs)
         else:
-            prev_limb_name = prev_limb.__name__
+            prev_limb_name = prev_limb
             num_prev_samples = len(self.limb_to_timings[prev_limb_name])
             if num_prev_samples > SAMPLES_NEEDED_FOR_TIMING:
                 avg_prev_time = self.get_average_time_interval(self.limb_to_timings[prev_limb_name])
