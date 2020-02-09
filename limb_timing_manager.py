@@ -2,8 +2,8 @@ import time
 
 from centipede.ring_buffer import RingBuffer
 
-TIMING_HISTORY = 15
-
+TIMING_HISTORY = 30
+SAMPLES_NEEDED_FOR_TIMING = 5
 
 class TimingManager(object):
     def __init__(self):
@@ -27,16 +27,24 @@ class TimingManager(object):
     def is_limb_slow(self, prev_limb, limb):
         limb_name = limb.__name__
 
+        avg_prev_time = None
         if not prev_limb:
-            avg_prev_time = self.get_average_time_interval(self.incoming_jobs)
+            num_prev_samples = len(self.incoming_jobs)
+            if num_prev_samples > SAMPLES_NEEDED_FOR_TIMING:
+                avg_prev_time = self.get_average_time_interval(self.incoming_jobs)
         else:
             prev_limb_name = prev_limb.__name__
-            avg_prev_time = self.get_average_time_interval(self.limb_to_timings[prev_limb_name])
+            num_prev_samples = len(self.limb_to_timings[prev_limb_name])
+            if num_prev_samples > SAMPLES_NEEDED_FOR_TIMING:
+                avg_prev_time = self.get_average_time_interval(self.limb_to_timings[prev_limb_name])
 
-        avg_curr_time = self.get_average_time_interval(self.limb_to_timings[limb_name])
+        avg_curr_time = None
+        num_curr_samples = len(self.limb_to_timings[limb_name])
+        if num_curr_samples > SAMPLES_NEEDED_FOR_TIMING:
+            avg_curr_time = self.get_average_time_interval(self.limb_to_timings[limb_name])
 
         if avg_prev_time and avg_curr_time:
-            return avg_curr_time < avg_prev_time
+            return avg_curr_time > avg_prev_time
         else:
             return False
 
@@ -47,7 +55,7 @@ class TimingManager(object):
         for time in buffer:
             if last_time:
                 time_intervals.append(time - last_time)
-                last_time = time
+            last_time = time
 
         avg = None
         if len(time_intervals):
@@ -57,4 +65,4 @@ class TimingManager(object):
 
 
     def reset_timing_info(self, limb):
-        self.limb_to_timings[limb] = RingBuffer(TIMING_HISTORY)
+        self.limb_to_timings[limb.__name__] = RingBuffer(TIMING_HISTORY)

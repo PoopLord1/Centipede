@@ -23,3 +23,6 @@ class RingBuffer(object):
             return ret
         else:
             raise StopIteration
+
+    def __len__(self):
+        return len(self.buffer)
