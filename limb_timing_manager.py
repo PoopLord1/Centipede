@@ -24,9 +24,7 @@ class TimingManager(object):
         self.limb_to_timings[limb].add(time.time())
 
 
-    def is_limb_slow(self, prev_limb, limb):
-        limb_name = limb.__name__
-
+    def is_limb_slow(self, prev_limb, limb_name):
         avg_prev_time = None
         if not prev_limb:
             num_prev_samples = len(self.incoming_jobs)

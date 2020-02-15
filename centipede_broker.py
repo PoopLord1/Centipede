@@ -49,7 +49,7 @@ class CentipedeBroker(object):
             if i == len(limbs) - 1:
                 self.limb_to_next_limb[limb_name] = None
             else:
-                self.limb_to_next_limb[limb_name] = limbs[i+1]
+                self.limb_to_next_limb[limb_name] = limbs[i+1].__name__
 
             self.limb_to_queue[limb_name] = deque([])
             self.limb_to_queue_lock[limb_name] = threading.Lock()
@@ -57,13 +57,13 @@ class CentipedeBroker(object):
             self.limb_to_process_ids[limb_name] = []
 
 
-    def create_process(self, limb):
-        limb_name = limb.__name__
+    def create_process(self, limb_name):
         config = self.limb_to_config[limb_name]
         config_data = pickle.dumps(config)
 
         new_port = self.socket_handler.get_new_port()
 
+        limb = self.limb_name_to_class[limb_name]
         new_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb,
                                                    args=(limb, config_data, BROKER_PORT, new_port))
         new_process.start()
@@ -80,14 +80,14 @@ class CentipedeBroker(object):
         data_obj = pickle.loads(data)
         limb_name = data_obj["limb_name"]
 
-        next_limb = self.limb_to_next_limb[limb_name]
+        next_limb_name = self.limb_to_next_limb[limb_name]
         # If there is a next limb, put the data in the queue for the next limb
-        if next_limb:
+        if next_limb_name:
 
-            next_limb_is_slow = self.timing_manager.is_limb_slow(limb_name, next_limb)
-            next_limb_name = next_limb.__name__
+            next_limb_is_slow = self.timing_manager.is_limb_slow(limb_name, next_limb_name)
             if next_limb_is_slow or len(self.limb_to_queue[next_limb_name]) > 3:
-                self.create_process(next_limb)
+                next_limb = self.limb_name_to_class[next_limb_name]
+                self.create_process(next_limb_name)
                 self.timing_manager.reset_timing_info(next_limb)
 
             free_process = None
@@ -140,9 +140,9 @@ class CentipedeBroker(object):
         delivery["limb_name"] = first_limb_name
         delivery["type"] = "job"
 
-        first_limb_is_slow = self.timing_manager.is_limb_slow(None, self.first_limb)
+        first_limb_is_slow = self.timing_manager.is_limb_slow(None, first_limb_name)
         if first_limb_is_slow or len(self.limb_to_queue[first_limb_name]) > 3:
-            self.create_process(self.first_limb)
+            self.create_process(first_limb_name)
             self.timing_manager.reset_timing_info(self.first_limb)
 
         free_process = None

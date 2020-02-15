@@ -36,7 +36,7 @@ class SleepLimb(Limb):
         :return: None
         """
 
-        self.logger.info("Currently processing " + url + " with an empty limb. No action has been taken.")
+        self.logger.info("Currently processing " + url + " with the sleep limb. No action has been taken.")
         time.sleep(5)
         self.logger.info("\t Done.")
 
