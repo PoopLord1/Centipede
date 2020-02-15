@@ -5,7 +5,7 @@ IngestionQueueManager - Manages, autosaves, and adds to the queue of resources t
 import threading
 import os
 
-from centipede.job import Job
+from centipede.internal.job import Job
 
 class IngestionQueueManager(object):
 

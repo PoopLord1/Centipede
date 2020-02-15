@@ -5,8 +5,7 @@ Abstract module for scraping using Selenium Webdriver and Chrome
 import os
 
 from centipede.limbs.abstract.Limb import Limb
-from centipede import proxy_servers
-from centipede import user_agents
+from centipede.limbs.common import proxy_servers, user_agents
 
 from selenium.webdriver import ChromeOptions
 from selenium import webdriver

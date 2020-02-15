@@ -1,9 +1,8 @@
-import json
 import socket
 import dill as pickle
 import threading
 
-from centipede import centipede_logger
+from centipede.internal import centipede_logger
 
 BROKER_IP = "127.0.0.1"
 LIMB_IP = "127.0.0.1"

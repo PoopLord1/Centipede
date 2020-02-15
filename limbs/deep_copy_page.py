@@ -13,10 +13,9 @@ import logging
 from datetime import datetime
 
 from centipede.limbs.abstract.Limb import Limb
-from centipede import user_agents
-from centipede import proxy_servers
-from centipede.package import Package
-from centipede import centipede_logger
+from centipede.limbs.common import proxy_servers, user_agents
+from centipede.internal.package import Package
+from centipede.internal import centipede_logger
 
 
 class DeepCopyPage(Limb):

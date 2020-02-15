@@ -5,10 +5,10 @@ import uuid
 
 from collections import deque
 
-from centipede.package import Package
-from centipede.broker_communicator import BrokerCommunicator, BROKER_PORT
-from centipede import limb_invocation_wrapper
-from centipede.limb_timing_manager import TimingManager
+from centipede.internal.package import Package
+from centipede.internal.broker_communicator import BrokerCommunicator, BROKER_PORT
+from centipede.internal import limb_invocation_wrapper
+from centipede.internal.limb_timing_manager import TimingManager
 
 
 class CentipedeBroker(object):
@@ -65,7 +65,7 @@ class CentipedeBroker(object):
 
         limb = self.limb_name_to_class[limb_name]
         new_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb,
-                                                   args=(limb, config_data, BROKER_PORT, new_port))
+                                              args=(limb, config_data, BROKER_PORT, new_port))
         new_process.start()
 
         process_id = uuid.uuid4()

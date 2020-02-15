@@ -3,10 +3,9 @@ four_chan_scraper.py - A Python module for Centipede that scrapes 4chan boards
 """
 
 from centipede.limbs.abstract.Limb import Limb
-from centipede import user_agents
-from centipede import proxy_servers
-from centipede import centipede_logger
-from centipede.package import Package
+from centipede.limbs.common import proxy_servers, user_agents
+from centipede.internal import centipede_logger
+from centipede.internal.package import Package
 from centipede.models.four_chan_thread import FourChanThread
 
 import re

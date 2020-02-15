@@ -1,13 +1,12 @@
 from twilio.rest import Client
 import re
-import flair
 import logging
 
 from centipede.limbs.abstract.Limb import Limb
-from centipede.package import Package
+from centipede.internal.package import Package
 from centipede.models.four_chan_thread import FourChanThread
 from centipede.limbs import location_trie
-from centipede import centipede_logger
+from centipede.internal import centipede_logger
 
 from centipede.limbs.common.personal_information import twilio_constants
 client = Client(twilio_constants.ACCOUNT_ID, twilio_constants.AUTH_TOKEN)

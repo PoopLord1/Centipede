@@ -1,6 +1,6 @@
 import time
 
-from centipede.ring_buffer import RingBuffer
+from centipede.internal.ring_buffer import RingBuffer
 
 TIMING_HISTORY = 30
 SAMPLES_NEEDED_FOR_TIMING = 5

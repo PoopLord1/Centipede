@@ -5,7 +5,7 @@ Abstract module for scraping using Selenium Webdriver and Firefox
 import os
 
 from .Limb import Limb
-from centipede import user_agents, proxy_servers
+from centipede.limbs.common import proxy_servers, user_agents
 
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium import webdriver

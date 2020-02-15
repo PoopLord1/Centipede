@@ -3,10 +3,10 @@ import re
 import logging
 
 from centipede.limbs.abstract.Limb import Limb
-from centipede.package import Package
+from centipede.internal.package import Package
 
 from centipede.limbs.common.personal_information import twilio_constants
-from centipede import centipede_logger
+from centipede.internal import centipede_logger
 
 client = Client(twilio_constants.ACCOUNT_ID, twilio_constants.AUTH_TOKEN)
 

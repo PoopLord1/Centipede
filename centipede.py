@@ -2,11 +2,9 @@
 Centipede.py - top-level framework that instantiates and calls the limbs in order.
 """
 
-from centipede import resource_generator
 #from centipede import text_notification_manager
-from centipede.package import Package
-from centipede import centipede_broker
-from centipede import centipede_logger
+from centipede.internal.package import Package
+from centipede.internal import centipede_broker, centipede_logger, resource_generator
 
 
 class Centipede(object):

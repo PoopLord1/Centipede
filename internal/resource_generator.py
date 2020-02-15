@@ -1,13 +1,8 @@
 
 import logging
 
-from selenium.webdriver.firefox.options import Options
-from selenium.common.exceptions import TimeoutException
-from selenium import webdriver
+from centipede.internal import centipede_logger, ingestion_queue_manager
 
-from centipede import ingestion_queue_manager
-from centipede import user_agents
-from centipede import centipede_logger
 
 class UrlGenerator(object):
 
