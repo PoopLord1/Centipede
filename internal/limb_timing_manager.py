@@ -62,5 +62,10 @@ class TimingManager(object):
         return avg
 
 
+    def get_limb_processing_rate(self, limb_name=""):
+        if not limb_name:
+            return self.get_average_time_interval(self.incoming_jobs)
+        return self.get_average_time_interval(self.limb_to_timings[limb_name])
+
     def reset_timing_info(self, limb):
         self.limb_to_timings[limb.__name__] = RingBuffer(TIMING_HISTORY)

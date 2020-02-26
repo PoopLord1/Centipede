@@ -40,7 +40,10 @@ class BrokerCommunicator(object):
         while True:
             data = conn.recv(2048)
 
-            incoming_data_handler(data)
+            return_string = incoming_data_handler(data)
+
+            if return_string:
+                conn.send(return_string)
 
             conn.close()
             broker_server.close()

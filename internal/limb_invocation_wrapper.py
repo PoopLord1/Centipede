@@ -46,6 +46,7 @@ class LimbInvoker(object):
                 delivery["data_point"] = data_point
                 delivery["limb_name"] = limb_class.__name__
                 delivery["process_id"] = self.process_id
+                delivery["type"] = "job_response"
                 pickled_package = pickle.dumps(delivery)
                 self.outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.outgoing_data_client.connect((BROKER_IP, broker_port))

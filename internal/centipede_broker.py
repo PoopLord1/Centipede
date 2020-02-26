@@ -68,16 +68,54 @@ class CentipedeBroker(object):
                                               args=(limb, config_data, BROKER_PORT, new_port))
         new_process.start()
 
-        process_id = uuid.uuid4()
+        process_id = str(uuid.uuid4())
         self.limb_to_process_ids[limb_name].append(process_id)
         self.id_to_process[process_id] = new_process
         self.process_id_is_busy[process_id] = False
 
         self.socket_handler.associate_port_with_process_id(new_port, process_id)
 
-
     def handle_incoming_data(self, data):
         data_obj = pickle.loads(data)
+        if data_obj["type"] == "job_response":
+            return self.handle_incoming_limb_data(data_obj)
+        if data_obj["type"] == "status":
+            return self.get_status_as_json()
+
+
+    def get_status_as_json(self):
+        status_data = []
+
+        generator_dict = {}
+        generator_dict["title"] = "Resource Generator"
+        generator_dict["Processing Rate"] = self.timing_manager.get_limb_processing_rate()
+        status_data.append(generator_dict)
+
+        curr_limb = self.first_limb.__name__
+        while curr_limb:
+            limb_status_dict = {}
+            limb_status_dict["title"] = curr_limb
+            limb_status_dict["Processing Rate"] = self.timing_manager.get_limb_processing_rate(curr_limb)
+            limb_status_dict["Queue Size"] = len(self.limb_to_queue[curr_limb])
+
+            processes_data = []
+            for process_id in self.limb_to_process_ids[curr_limb]:
+                process_data = {}
+                process_data["Process ID"] = process_id
+                process_data["Status"] = str(self.id_to_process[process_id].is_alive())
+                process_data["Processing Rate"] = "To Be Implemented"
+                processes_data.append(process_data)
+            limb_status_dict["Processes"] = processes_data
+
+            status_data.append(limb_status_dict)
+
+            curr_limb = self.limb_to_next_limb[curr_limb]
+
+        return pickle.dumps(status_data)
+
+
+
+    def handle_incoming_limb_data(self, data_obj):
         limb_name = data_obj["limb_name"]
 
         next_limb_name = self.limb_to_next_limb[limb_name]
@@ -107,7 +145,7 @@ class CentipedeBroker(object):
                 self.socket_handler.send_job(free_process, new_data)
             else:
                 self.limb_to_queue_lock[next_limb_name].acquire()
-                self.limb_to_queue[next_limb_name].append(data)
+                self.limb_to_queue[next_limb_name].append(json.dumps(data_obj))
                 self.limb_to_queue_lock[next_limb_name].release()
 
         # Send another job to that limb if there is one in the queue
