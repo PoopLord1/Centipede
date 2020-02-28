@@ -123,7 +123,7 @@ class CentipedeBroker(object):
         if next_limb_name:
 
             next_limb_is_slow = self.timing_manager.is_limb_slow(limb_name, next_limb_name)
-            if next_limb_is_slow or len(self.limb_to_queue[next_limb_name]) > 3:
+            if len(self.limb_to_queue[next_limb_name]) > 3:
                 next_limb = self.limb_name_to_class[next_limb_name]
                 self.create_process(next_limb_name)
                 self.timing_manager.reset_timing_info(next_limb)
@@ -179,7 +179,7 @@ class CentipedeBroker(object):
         delivery["type"] = "job"
 
         first_limb_is_slow = self.timing_manager.is_limb_slow(None, first_limb_name)
-        if first_limb_is_slow or len(self.limb_to_queue[first_limb_name]) > 3:
+        if len(self.limb_to_queue[first_limb_name]) > 3:
             self.create_process(first_limb_name)
             self.timing_manager.reset_timing_info(self.first_limb)
 
