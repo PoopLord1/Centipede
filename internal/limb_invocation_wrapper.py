@@ -49,6 +49,7 @@ class LimbInvoker(object):
                 delivery["type"] = "job_response"
                 pickled_package = pickle.dumps(delivery)
                 self.outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.outgoing_data_client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 self.outgoing_data_client.connect((BROKER_IP, broker_port))
                 self.outgoing_data_client.sendall(pickled_package)
                 self.outgoing_data_client.close()
@@ -56,6 +57,7 @@ class LimbInvoker(object):
 
     def run_ingestion_server(self, limb_port):
         incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        incoming_data_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         incoming_data_server.bind((LIMB_IP, limb_port))
         incoming_data_server.listen()
         conn, addr = incoming_data_server.accept()
@@ -67,6 +69,7 @@ class LimbInvoker(object):
                 conn.close()
                 incoming_data_server.close()
                 incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                incoming_data_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 incoming_data_server.bind((LIMB_IP, limb_port))
                 incoming_data_server.listen()
                 conn, addr = incoming_data_server.accept()
@@ -97,6 +100,7 @@ class LimbInvoker(object):
                 conn.close()
                 incoming_data_server.close()
                 incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                incoming_data_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 incoming_data_server.bind((LIMB_IP, limb_port))
                 incoming_data_server.listen()
                 conn, addr = incoming_data_server.accept()

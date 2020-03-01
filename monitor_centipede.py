@@ -43,7 +43,7 @@ class CentipedeMonitor():
             if "Processes" in limb_dict.keys():
                 for process in limb_dict["Processes"]:
 
-                    if process["Status"]:
+                    if not process["Status"]:
                         screen.print_at("•", 2, line_counter, Screen.COLOUR_GREEN)
                     else:
                         screen.print_at("•", 2, line_counter, Screen.COLOUR_RED)

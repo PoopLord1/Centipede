@@ -24,6 +24,7 @@ class CentipedeBroker(object):
         self.limb_to_config = {}
 
         self.process_id_is_busy = {}
+        self.process_id_busy_lock = {}
         self.id_to_process = {}
 
         self.socket_handler = BrokerCommunicator()
@@ -61,19 +62,20 @@ class CentipedeBroker(object):
         config = self.limb_to_config[limb_name]
         config_data = pickle.dumps(config)
 
-        new_port = self.socket_handler.get_new_port()
+        new_limb_port = self.socket_handler.get_new_port()
 
         limb = self.limb_name_to_class[limb_name]
         new_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb,
-                                              args=(limb, config_data, BROKER_PORT, new_port))
+                                              args=(limb, config_data, BROKER_PORT, new_limb_port))
         new_process.start()
 
         process_id = str(uuid.uuid4())
         self.limb_to_process_ids[limb_name].append(process_id)
         self.id_to_process[process_id] = new_process
         self.process_id_is_busy[process_id] = False
+        self.process_id_busy_lock[process_id] = threading.Lock()
 
-        self.socket_handler.associate_port_with_process_id(new_port, process_id)
+        self.socket_handler.associate_port_with_process_id(new_limb_port, process_id)
 
     def handle_incoming_data(self, data):
         data_obj = pickle.loads(data)
@@ -102,7 +104,9 @@ class CentipedeBroker(object):
             for process_id in self.limb_to_process_ids[curr_limb]:
                 process_data = {}
                 process_data["Process ID"] = process_id
-                process_data["Status"] = str(self.id_to_process[process_id].is_alive())
+                self.process_id_busy_lock[process_id].acquire()
+                process_data["Status"] = self.process_id_is_busy[process_id]
+                self.process_id_busy_lock[process_id].release()
                 process_data["Processing Rate"] = "To Be Implemented"
                 processes_data.append(process_data)
             limb_status_dict["Processes"] = processes_data
@@ -130,9 +134,12 @@ class CentipedeBroker(object):
 
             free_process = None
             for process in self.limb_to_process_ids[next_limb_name]:
+                self.process_id_busy_lock[process].acquire()
                 if not self.process_id_is_busy[process]:
                     free_process = process
+                    self.process_id_busy_lock[process].release()
                     break
+                self.process_id_busy_lock[process].release()
 
             if free_process:
                 self.timing_manager.record_limb_input(next_limb_name)
@@ -145,7 +152,7 @@ class CentipedeBroker(object):
                 self.socket_handler.send_job(free_process, new_data)
             else:
                 self.limb_to_queue_lock[next_limb_name].acquire()
-                self.limb_to_queue[next_limb_name].append(json.dumps(data_obj))
+                self.limb_to_queue[next_limb_name].append(data_obj)
                 self.limb_to_queue_lock[next_limb_name].release()
 
         # Send another job to that limb if there is one in the queue
@@ -158,11 +165,17 @@ class CentipedeBroker(object):
             delivery["process_id"] = data_obj["process_id"]
             delivery["type"] = "job"
 
+            self.process_id_busy_lock[data_obj["process_id"]].acquire()
+            self.process_id_is_busy[data_obj["process_id"]] = True
+            self.process_id_busy_lock[data_obj["process_id"]].release()
+
             self.timing_manager.record_limb_input(limb_name)
             self.socket_handler.send_job(data_obj["process_id"], delivery)
-            self.process_id_is_busy[data_obj["process_id"]] = True
+
         else:
+            self.process_id_busy_lock[data_obj["process_id"]].acquire()
             self.process_id_is_busy[data_obj["process_id"]] = False
+            self.process_id_busy_lock[data_obj["process_id"]].release()
 
 
     def put_data_in_pipeline(self, data_point):
@@ -185,15 +198,21 @@ class CentipedeBroker(object):
 
         free_process = None
         for process_id in self.limb_to_process_ids[first_limb_name]:
+            self.process_id_busy_lock[process_id].acquire()
             if not self.process_id_is_busy[process_id]:
                 free_process = process_id
+                self.process_id_busy_lock[process_id].release()
                 break
+            self.process_id_busy_lock[process_id].release()
 
         if free_process:
+            self.process_id_busy_lock[free_process].acquire()
+            self.process_id_is_busy[free_process] = True
+            self.process_id_busy_lock[free_process].release()
+
             delivery["process_id"] = free_process
             self.timing_manager.record_limb_input(first_limb_name)
             self.socket_handler.send_job(free_process, delivery)
-            self.process_id_is_busy[free_process] = True
         else:
             self.limb_to_queue_lock[first_limb_name].acquire()
             self.limb_to_queue[first_limb_name].append(delivery)
