@@ -75,6 +75,8 @@ class CentipedeBroker(object):
         self.process_id_is_busy[process_id] = False
         self.process_id_busy_lock[process_id] = threading.Lock()
 
+        self.timing_manager.init_new_process(process_id)
+
         self.socket_handler.associate_port_with_process_id(new_limb_port, process_id)
 
     def handle_incoming_data(self, data):
@@ -107,7 +109,7 @@ class CentipedeBroker(object):
                 self.process_id_busy_lock[process_id].acquire()
                 process_data["Status"] = self.process_id_is_busy[process_id]
                 self.process_id_busy_lock[process_id].release()
-                process_data["Processing Rate"] = "To Be Implemented"
+                process_data["Processing Rate"] = self.timing_manager.get_process_processing_rate(process_id)
                 processes_data.append(process_data)
             limb_status_dict["Processes"] = processes_data
 
@@ -170,6 +172,7 @@ class CentipedeBroker(object):
             self.process_id_busy_lock[data_obj["process_id"]].release()
 
             self.timing_manager.record_limb_input(limb_name)
+            self.timing_manager.record_process_input(data_obj["process_id"])
             self.socket_handler.send_job(data_obj["process_id"], delivery)
 
         else:
