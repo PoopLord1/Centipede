@@ -36,7 +36,7 @@ class CentipedeMonitor():
 
             if limb_dict["Processing Rate"]:
                 rate = decimal.Decimal(limb_dict["Processing Rate"])
-                screen.print_at(limb_dict["title"] + "  -  " + str(round(rate, 3)), 0, line_counter)
+                screen.print_at(limb_dict["title"] + "  -  ingesting a job every " + str(round(rate, 3)) + " s", 0, line_counter)
             else:
                 screen.print_at(limb_dict["title"] + "  -  ", 0, line_counter)
 
@@ -58,7 +58,7 @@ class CentipedeMonitor():
                         screen.print_at(process["Process ID"] + "  -  ", 4, line_counter)
                     else:
                         rate = decimal.Decimal(process["Processing Rate"])
-                        screen.print_at(process["Process ID"] + "  -  " + str(round(rate, 3)), 4, line_counter)
+                        screen.print_at(process["Process ID"] + "  -  " + str(round(rate, 3)) + " s per job", 4, line_counter)
 
                     line_counter += 1
 

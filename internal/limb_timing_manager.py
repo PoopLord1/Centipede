@@ -11,6 +11,7 @@ class TimingManager(object):
         self.limb_to_timings = {}
         self.process_to_timings = {}
 
+        self.process_to_input_time = {}
 
     def init_with_limbs(self, limbs):
         for limb in limbs:
@@ -30,7 +31,13 @@ class TimingManager(object):
 
 
     def record_process_input(self, process_id):
-        self.process_to_timings[process_id].add(time.time())
+        self.process_to_input_time[process_id] = time.time()
+
+
+    def record_process_output(self, process_id):
+        time_taken_for_job = time.time() - self.process_to_input_time[process_id]
+        self.process_to_timings[process_id].add(time_taken_for_job)
+        del self.process_to_input_time[process_id]
 
 
     def is_limb_slow(self, prev_limb, limb_name):
@@ -80,7 +87,16 @@ class TimingManager(object):
     def get_process_processing_rate(self, process_id):
         if not process_id:
             raise Exception("You must provide a process id when getting a process' ingestion rate.")
-        return self.get_average_time_interval(self.process_to_timings[process_id])
+
+        timings_sum = 0
+        for time in self.process_to_timings[process_id]:
+            timings_sum += time
+
+        avg = None
+        if len(self.process_to_timings[process_id]):
+            avg = timings_sum / len(self.process_to_timings[process_id])
+
+        return avg
 
 
     def reset_timing_info(self, limb):

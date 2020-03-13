@@ -123,6 +123,8 @@ class CentipedeBroker(object):
 
     def handle_incoming_limb_data(self, data_obj):
         limb_name = data_obj["limb_name"]
+        first_process_id = data_obj["process_id"]
+        self.timing_manager.record_process_output(first_process_id)
 
         # If there is a next limb, put the data in the queue for the next limb
         next_limb_name = self.limb_to_next_limb[limb_name]
