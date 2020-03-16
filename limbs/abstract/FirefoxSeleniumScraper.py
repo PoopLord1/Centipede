@@ -28,6 +28,8 @@ class FirefoxSeleniumScraper(Limb):
         self.uagent = None
         self.proxy_server = None
 
+        self.logger = self.config_dict["logger"]
+
         self.is_spoofing_user_agent = False
         if config_dict.get("SPOOF_USER_AGENT", False):
             self.is_spoofing_user_agent = True
@@ -52,16 +54,18 @@ class FirefoxSeleniumScraper(Limb):
         """
         path_value = os.environ["PATH"]
 
-        path_values = path_value.split(":")
+        path_values = path_value.split(";")
 
         path_contains_geckodriver = False
         for path in path_values:
-            if path.endswith(""):
+            if path.endswith("centipede\\limbs\\common"):
                 path_contains_geckodriver = True
 
         if not path_contains_geckodriver:
-            cwd = os.getcwd()
-            os.environ["PATH"] = cwd + ":" + os.environ["PATH"]
+            # cwd = os.getcwd()
+            cwd = ""  # TODO - insert relative path to chromedriver, independent of the cwd.
+            # os.environ["PATH"] = cwd + ":" + os.environ["PATH"] # TODO - colon for linux, semicolon for windows
+            os.environ["PATH"] = cwd + ";" + os.environ["PATH"]
 
 
     def init_selenium_driver_firefox(self, uagent, proxy_server):
@@ -71,7 +75,7 @@ class FirefoxSeleniumScraper(Limb):
         binary = FirefoxBinary(self.ff_binary_location)
 
         path_value = os.environ["PATH"]
-        path_values = path_value.split(":")
+        path_values = path_value.split(";")
 
         firefox_capabilities = webdriver.DesiredCapabilities.FIREFOX
         firefox_capabilities['marionette'] = True
@@ -129,6 +133,7 @@ class FirefoxSeleniumScraper(Limb):
                 while num_retries < FirefoxSeleniumScraper.MAX_RETRIES:
                     try:
                         output_data.update(scraping_method(url))
+                        break
                     except TimeoutException:
                         num_retries += 1
                         proxy_servers.put_back(self.proxy_server)

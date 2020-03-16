@@ -88,8 +88,6 @@ class YoutubeScraper(ChromeSeleniumScraper):
 
         comments = self.scrape_comments(video_page, video_id)
 
-        # TODO - resolve the bugs associated with moving from
-
         self.logger.debug("video_title: " + video_title)
         self.logger.debug("num_likes: " + num_likes)
         self.logger.debug("num_dislikes: " + num_dislikes)

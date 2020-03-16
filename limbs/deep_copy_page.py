@@ -16,9 +16,10 @@ from centipede.limbs.abstract.Limb import Limb
 from centipede.limbs.common import proxy_servers, user_agents
 from centipede.internal.package import Package
 from centipede.internal import centipede_logger
+from centipede.limbs.abstract.ChromeSeleniumScraper import ChromeSeleniumScraper
 
 
-class DeepCopyPage(Limb):
+class DeepCopyPage(ChromeSeleniumScraper):
 
     url_re = re.compile("([^/]+)?:?(//)?([^/]+)?([^$]*)")
 
@@ -68,7 +69,6 @@ class DeepCopyPage(Limb):
         fp.close()
 
     def deep_copy_page(self, page, data_package):
-
         start_time = time.time()
         self.logger.info("Now processing " + page)
 
@@ -107,6 +107,10 @@ class DeepCopyPage(Limb):
             # Grab the raw html and parse it
             if hasattr(data_package, "html") and data_package.html:
                 html_content = data_package.html
+                html_string = html_content.decode("utf-8")
+            elif self.config_dict.get("use_selenium", False):
+                self.driver.get(page)
+                html_string = self.driver.page_source
             else:
                 proxies = {self.proxy_server[2]: self.proxy_server[0] + ":" + str(self.proxy_server[1])}
                 header = {"User-Agent": self.uagent,
@@ -116,8 +120,8 @@ class DeepCopyPage(Limb):
                           "Accept-Language": "en-US,en;q=0.8",
                           "Connection": "keep-alive"}
                 html_content = requests.get(page, proxies=proxies, headers=header).content
-            html_string = html_content.decode("utf-8")
-            soup = BeautifulSoup(html_content, 'html.parser')
+                html_string = html_content.decode("utf-8")
+            soup = BeautifulSoup(html_string, 'html.parser')
 
             # We will be analyzing resources linked from img, link, script, and a tags.
             # (relevant file extensions can be found in DeepCopyLimb.FILETYPES_TO_COPY)
@@ -142,7 +146,8 @@ class DeepCopyPage(Limb):
                     if obj.has_attr("src"):
                         rel_url = obj["src"]
                 elif tag_type == "a":
-                    rel_url = obj["href"]
+                    if obj.has_attr("href"):
+                        rel_url = obj["href"]
 
                 if rel_url and rel_url not in saved_urls:
                     global_url = DeepCopyPage.globalize_url(page, rel_url)
@@ -183,12 +188,18 @@ class DeepCopyPage(Limb):
         else:
             self.logger.debug(page + " was not malicious, so we did not copy it.")
 
+        return data_package
+
 
 if __name__ == "__main__":
 
-    copy_limb = DeepCopyPage({"SPOOF_USER_AGENT": True, "USE_PROXY_SERVER": True, "logger": centipede_logger.create_logger("DeepCopyPage", logging.DEBUG)})
+    copy_limb = DeepCopyPage({"SPOOF_USER_AGENT": True,
+                              "USE_PROXY_SERVER": False,
+                              "logger": centipede_logger.create_logger("DeepCopyPage", logging.DEBUG),
+                              "ff_binary_location": "C:\\Program Files\\Mozilla Firefox",
+                              "use_selenium": True})
     pack = Package()
 
     start_time = time.time()
-    copy_limb.scrape_from_url("http://boards.4chan.org/pol/thread/231726938", pack)
+    copy_limb.scrape_from_url("", pack)
     print("Time taken: " + str(time.time() - start_time))

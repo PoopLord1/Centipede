@@ -21,6 +21,8 @@ class ChromeSeleniumScraper(Limb):
         Like Limb, this class is not meant to be instantiated.
         """
 
+        super(ChromeSeleniumScraper, self).__init__(config_dict)
+
         self.is_spoofing_user_agent = False
         if config_dict.get("SPOOF_USER_AGENT", False):
             self.is_spoofing_user_agent = True
@@ -37,6 +39,8 @@ class ChromeSeleniumScraper(Limb):
         if self.is_using_proxy_server:
             self.proxy_server = proxy_servers.pop()
 
+        self.logger = config_dict["logger"]
+
         self.verify_chrome_on_path()
         self.driver = self._init_selenium_driver_chrome(self.uagent, self.proxy_server)
 
@@ -50,11 +54,11 @@ class ChromeSeleniumScraper(Limb):
 
         path_contains_chrome_binary = False
         for path in path_values:
-            if path.endswith(""):
+            if path.endswith("centipede\\limbs\\common"):
                 path_contains_chrome_binary = True
 
         if not path_contains_chrome_binary:
-            cwd = ""
+            cwd = "" # TODO - insert relative path to chromedriver, independent of the cwd.
             os.environ["PATH"] = cwd + ";" + os.environ["PATH"]
 
 
@@ -63,21 +67,34 @@ class ChromeSeleniumScraper(Limb):
         Initializes and returns the selenium webdriver, using the Chrome binary.
         """
         options = ChromeOptions()
-        prefs = {"profile.managed_default_content_settings.images": 2}
+        prefs = {"profile.managed_default_content_settings.images": 2,
+                 "profile.default_content_setting_values.notifications": 2}
         options.add_experimental_option("prefs", prefs)
+        # options.add_argument("--headless")
+        options.add_argument("start-maximized")
+
+        if proxy_server:
+            proxy_address = proxy_server[0]
+            proxy_port = str(proxy_server[1])
+            proxy_protocol = proxy_server[2]
+            print("--proxy-server=" + proxy_protocol + "://" + proxy_address + ":" + proxy_port)
+            options.add_argument("--proxy-server=" + proxy_protocol + "://" + proxy_address + ":" + proxy_port)
+
+        if uagent:
+            options.add_argument("--user-agent=" + uagent)
+            print("--user-agent=" + uagent)
 
         self.driver = webdriver.Chrome("chromedriver.exe", chrome_options=options)
         self.driver.set_page_load_timeout(120)
         return self.driver
 
 
-    def scrape_from_url(self, url):
+    def scrape_from_url(self, url, package):
         """
         Given a url string, ingests information from that URL.
         Branches into different methods depending on structure of URL.
         Returns a dictionry of information scraped / determined.
         """
-        output_data = {}
         for regex in self.regex_to_scraping_method:
             match = regex.match(url)
             if match:
@@ -86,14 +103,15 @@ class ChromeSeleniumScraper(Limb):
                 num_retries = 0
                 while num_retries < ChromeSeleniumScraper.MAX_RETRIES:
                     try:
-                        output_data.update(scraping_method(url))
+                        package = scraping_method(url, package)
+                        break
                     except TimeoutException:
                         num_retries += 1
                         proxy_servers.put_back(self.proxy_server)
                         self.proxy_server = proxy_servers.pop()
                         self.driver = self._init_selenium_driver_chrome(self.uagent, self.proxy_server)
 
-        return output_data
+        return package
 
     def wait_for_xpath(self, xpath):
         """
