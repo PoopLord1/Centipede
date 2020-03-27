@@ -1,4 +1,3 @@
-from twilio.rest import Client
 import re
 import logging
 
@@ -7,9 +6,6 @@ from centipede.internal.package import Package
 from centipede.models.four_chan_thread import FourChanThread
 from centipede.limbs import location_trie
 from centipede.internal import centipede_logger
-
-from centipede.limbs.common.personal_information import twilio_constants
-client = Client(twilio_constants.ACCOUNT_ID, twilio_constants.AUTH_TOKEN)
 
 
 class DetectMaliceInText(Limb):

@@ -1,12 +1,15 @@
 from twilio.rest import Client
+import boto3
 
-from centipede.limbs.common.personal_information.twilio_constants import *
+from centipede.limbs.common.personal_information import aws_sns_constants
 
 import datetime
-import os
 
 client = None
-client = Client(ACCOUNT_ID, AUTH_TOKEN)
+client = boto3.client("sns",
+                      aws_access_key_id=aws_sns_constants.ACCESS_KEY,
+                      aws_secret_access_key=aws_sns_constants.SECRET_KEY,
+                      region_name="us-east-1")
 
 
 def init_with_config(config_module):
@@ -37,10 +40,8 @@ def send_text_alert(text_body):
     """
     Sends a message to me with a given body.
     """
-    message_params = {"body": "-\n\n" + str(text_body),
-                      "from_": TWILIO_NUMBER,
-                      "to": DEST_NUMBER}
-    client.messages.create(**message_params)
+    client.publish(PhoneNumber=aws_sns_constants.DEST_NUMBER,
+                   Message=text_body)
 
 
 if __name__ == "__main__":

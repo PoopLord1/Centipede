@@ -1,4 +1,3 @@
-from twilio.rest import Client
 import re
 import logging
 import time
@@ -6,10 +5,7 @@ import time
 from centipede.limbs.abstract.Limb import Limb
 from centipede.internal.package import Package
 
-from centipede.limbs.common.personal_information import twilio_constants
 from centipede.internal import centipede_logger
-
-client = Client(twilio_constants.ACCOUNT_ID, twilio_constants.AUTH_TOKEN)
 
 
 class SleepLimb(Limb):

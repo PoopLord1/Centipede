@@ -1,14 +1,17 @@
-from twilio.rest import Client
+import boto3
 import re
 import logging
 
 from centipede.limbs.abstract.Limb import Limb
 from centipede.internal.package import Package
 
-from centipede.limbs.common.personal_information import twilio_constants
+from centipede.limbs.common.personal_information import aws_sns_constants
 from centipede.internal import centipede_logger
 
-client = Client(twilio_constants.ACCOUNT_ID, twilio_constants.AUTH_TOKEN)
+client = boto3.client("sns",
+                      aws_access_key_id=aws_sns_constants.ACCESS_KEY,
+                      aws_secret_access_key=aws_sns_constants.SECRET_KEY,
+                      region_name="us-east-1")
 
 
 class SendText(Limb):
@@ -38,22 +41,18 @@ class SendText(Limb):
         get_send_flag_func = self.config_dict.get("get_text_flag")
         if get_send_flag_func:
 
-            for thread in data_package.threads:
+            send_text_flag = False
+            try:
+                send_text_flag = get_send_flag_func(data_package)
+            except:
+                pass
 
-                send_text_flag = False
-                try:
-                    send_text_flag = get_send_flag_func(thread)
-                except:
-                    pass
+            if send_text_flag:
 
-                if send_text_flag:
-
-                    message_body = self.config_dict["message_template"].format(url)
-                    message_params = {"body": "-\n\n" + message_body,
-                                      "from_": twilio_constants.TWILIO_NUMBER,
-                                      "to": twilio_constants.DEST_NUMBER}
-                    client.messages.create(**message_params)
-                    self.logger.debug("We are sending a text for url " + url)
+                message_body = self.config_dict["message_template"].format(url)
+                client.publish(PhoneNumber=aws_sns_constants.DEST_NUMBER,
+                               Message=message_body)
+                self.logger.debug("We are sending a text for url " + url)
 
         else:
             raise AttributeError("The config dict for " + self.__class__ + " must contain an attribute 'get_text_flag'.")
