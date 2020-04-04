@@ -3,13 +3,18 @@ import mysql.connector
 from centipede.models.channel_data import ChannelData
 from centipede.models.comment_data import CommentData
 from centipede.models.video_data import VideoData
+from centipede.limbs.abstract.Limb import Limb
+
+
 
 from datetime import date, time
 
 
-class SqlManager(object):
+class SqlManager(Limb):
 
-    def __init__(self):
+    def __init__(self, config_dict):
+        self.logger = config_dict["logger"]
+
         self.conn = mysql.connector.connect(host="",
                                             user="",
                                             passwd="",
