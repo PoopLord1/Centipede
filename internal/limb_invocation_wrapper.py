@@ -10,19 +10,19 @@ LIMB_DATA_PORT = 12344
 
 
 class LimbInvoker(object):
-    def __init__(self, limb_class, config, broker_port):
+    def __init__(self, limb_class, config, broker_ip, broker_port):
         self.incoming_data_point = None
         self.incoming_package = None
         self.outgoing_data_client = None
 
         self.ingest_data_lock = threading.Lock()
 
-        self.limb_thread = threading.Thread(target=self.run_ingestion_process, args=(limb_class, config, broker_port, ))
+        self.limb_thread = threading.Thread(target=self.run_ingestion_process, args=(limb_class, config, broker_ip, broker_port, ))
         self.limb_thread.start()
 
         self.process_id = None
 
-    def run_ingestion_process(self, limb_class, in_config, broker_port):
+    def run_ingestion_process(self, limb_class, in_config, broker_ip, broker_port):
         limb_obj = limb_class(in_config)
 
         while True:
@@ -50,7 +50,7 @@ class LimbInvoker(object):
                 pickled_package = pickle.dumps(delivery)
                 self.outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.outgoing_data_client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                self.outgoing_data_client.connect((BROKER_IP, broker_port))
+                self.outgoing_data_client.connect((broker_ip, broker_port))
                 self.outgoing_data_client.sendall(pickled_package)
                 self.outgoing_data_client.close()
 
@@ -108,10 +108,10 @@ class LimbInvoker(object):
             # Some more clauses here, like timing stuff? idk
 
 
-def create_limb(limb_class, config_data, broker_port, limb_port):
+def create_limb(limb_class, config_data, broker_ip, broker_port, limb_port):
 
     in_config = pickle.loads(config_data)
     in_config["logger"] = centipede_logger.create_logger(str(limb_class.__name__), in_config["log_level"])
 
-    invoker = LimbInvoker(limb_class, in_config, broker_port)
+    invoker = LimbInvoker(limb_class, in_config, broker_ip, broker_port)
     invoker.run_ingestion_server(limb_port)

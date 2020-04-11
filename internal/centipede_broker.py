@@ -6,7 +6,7 @@ import uuid
 from collections import deque
 
 from centipede.internal.package import Package
-from centipede.internal.broker_communicator import BrokerCommunicator, BROKER_PORT
+from centipede.internal.broker_communicator import BrokerCommunicator, BROKER_IP, BROKER_PORT
 from centipede.internal import limb_invocation_wrapper
 from centipede.internal.limb_timing_manager import TimingManager
 
@@ -66,7 +66,7 @@ class CentipedeBroker(object):
 
         limb = self.limb_name_to_class[limb_name]
         new_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb,
-                                              args=(limb, config_data, BROKER_PORT, new_limb_port))
+                                              args=(limb, config_data, BROKER_IP, BROKER_PORT, new_limb_port))
         new_process.start()
 
         process_id = str(uuid.uuid4())
@@ -78,6 +78,7 @@ class CentipedeBroker(object):
         self.timing_manager.init_new_process(process_id)
 
         self.socket_handler.associate_port_with_process_id(new_limb_port, process_id)
+        self.socket_handler.associate_ip_with_process_id(BROKER_IP, process_id)
 
     def handle_incoming_data(self, data):
         data_obj = pickle.loads(data)
