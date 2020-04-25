@@ -2,6 +2,7 @@ import threading
 import pickle
 import multiprocessing
 import uuid
+import dill
 
 from collections import deque
 
@@ -32,6 +33,8 @@ class CentipedeBroker(object):
         self.broker_server.start()
 
         self.timing_manager = TimingManager()
+
+        self.support_brokers = []
 
 
     def save_limb_config(self, limb, config):
@@ -80,12 +83,56 @@ class CentipedeBroker(object):
         self.socket_handler.associate_port_with_process_id(new_limb_port, process_id)
         self.socket_handler.associate_ip_with_process_id(BROKER_IP, process_id)
 
+
     def handle_incoming_data(self, data):
-        data_obj = pickle.loads(data)
+        data_obj = dill.loads(data)
         if data_obj["type"] == "job_response":
             return self.handle_incoming_limb_data(data_obj)
         if data_obj["type"] == "status":
             return self.get_status_as_json()
+        if data_obj["type"] == "new_support":
+            return self.enroll_support_broker(data_obj)
+        if data_obj["type"] == "new_process":
+            return self.enroll_new_process(data_obj)
+
+
+    def enroll_new_process(self, data_obj):
+        class_name = data_obj["class"]
+        ip = data_obj["ip"]
+        port = data_obj["port"]
+        process_id = data_obj["process_id"]
+
+        self.process_id_busy_lock[process_id] = threading.Lock()
+        self.process_id_busy_lock[process_id].acquire()
+        self.process_id_is_busy[process_id] = False
+        self.process_id_busy_lock[process_id].release()
+        self.limb_to_process_ids[class_name].append(process_id)
+
+        self.socket_handler.associate_ip_with_process_id(ip, process_id)
+        self.socket_handler.associate_port_with_process_id(port, process_id)
+
+        self.timing_manager.init_new_process(process_id)
+
+
+    def enroll_support_broker(self, data_obj):
+        support_ip = data_obj["ip"]
+        support_port = data_obj["port"]
+
+        self.support_brokers.append((support_ip, support_port))
+
+        resp_obj = {}
+        resp_obj["type"] = "class_list"
+        resp_obj["broker_ip"] = BROKER_IP
+        resp_obj["broker_port"] = BROKER_PORT
+        resp_obj["configs"] = {}
+        resp_obj["classes"] = []
+        curr_limb = self.first_limb.__name__
+        while curr_limb:
+            resp_obj["classes"].append(self.limb_name_to_class[curr_limb])
+            resp_obj["configs"][curr_limb] = self.limb_to_config[curr_limb]
+            curr_limb = self.limb_to_next_limb[curr_limb]
+
+        return dill.dumps(resp_obj)
 
 
     def get_status_as_json(self):

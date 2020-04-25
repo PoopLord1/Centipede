@@ -4,9 +4,10 @@ import threading
 
 from centipede.internal import centipede_logger
 
-BROKER_IP = "127.0.0.1"
-LIMB_IP = "127.0.0.1"
 LIMB_DATA_PORT = 12344
+
+hostname = socket.gethostname()
+LIMB_IP = socket.gethostbyname(hostname)
 
 
 class LimbInvoker(object):
