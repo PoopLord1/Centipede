@@ -3,11 +3,7 @@ import dill as pickle
 import threading
 
 from centipede.internal import centipede_logger
-
-LIMB_DATA_PORT = 12344
-
-hostname = socket.gethostname()
-LIMB_IP = socket.gethostbyname(hostname)
+from centipede.internal.ip_address import ip as LIMB_IP
 
 
 class LimbInvoker(object):
@@ -62,6 +58,7 @@ class LimbInvoker(object):
         incoming_data_server.bind((LIMB_IP, limb_port))
         incoming_data_server.listen()
         conn, addr = incoming_data_server.accept()
+        print("Running new limb on port " + str(limb_port))
 
         while True:
             try:

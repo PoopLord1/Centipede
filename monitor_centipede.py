@@ -8,9 +8,9 @@ import socket
 import pickle
 import decimal
 
+from centipede.internal.ip_address import ip as BROKER_IP
+
 PORT = 10000
-hostname = socket.gethostname()
-BROKER_IP = socket.gethostbyname(hostname)
 
 class CentipedeMonitor():
     def __init__(self):

@@ -1,11 +1,11 @@
 import socket
 import pickle
 
+from centipede.internal.ip_address import ip as BROKER_IP
+
 BROKER_PORT = 10000
 LIMB_PORT_RANGE_START = 10001
 
-hostname = socket.gethostname()
-BROKER_IP = socket.gethostbyname(hostname)
 
 class BrokerCommunicator(object):
     def __init__(self):
@@ -22,6 +22,7 @@ class BrokerCommunicator(object):
 
         outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         outgoing_data_client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        print(ip, port)
         outgoing_data_client.connect((ip, port))
         outgoing_data_client.sendall(pickle.dumps(delivery))
         outgoing_data_client.close()

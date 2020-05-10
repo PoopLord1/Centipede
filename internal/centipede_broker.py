@@ -62,26 +62,26 @@ class CentipedeBroker(object):
 
 
     def create_process(self, limb_name):
+        print("Creating a new process for limb_name " + limb_name)
         config = self.limb_to_config[limb_name]
         config_data = pickle.dumps(config)
 
+        process_id = str(uuid.uuid4())
         new_limb_port = self.socket_handler.get_new_port()
+        self.socket_handler.associate_port_with_process_id(new_limb_port, process_id)
+        self.socket_handler.associate_ip_with_process_id(BROKER_IP, process_id)
+
+        self.timing_manager.init_new_process(process_id)
 
         limb = self.limb_name_to_class[limb_name]
         new_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb,
                                               args=(limb, config_data, BROKER_IP, BROKER_PORT, new_limb_port))
         new_process.start()
 
-        process_id = str(uuid.uuid4())
-        self.limb_to_process_ids[limb_name].append(process_id)
         self.id_to_process[process_id] = new_process
         self.process_id_is_busy[process_id] = False
         self.process_id_busy_lock[process_id] = threading.Lock()
-
-        self.timing_manager.init_new_process(process_id)
-
-        self.socket_handler.associate_port_with_process_id(new_limb_port, process_id)
-        self.socket_handler.associate_ip_with_process_id(BROKER_IP, process_id)
+        self.limb_to_process_ids[limb_name].append(process_id)
 
 
     def handle_incoming_data(self, data):
