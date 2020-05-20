@@ -63,7 +63,6 @@ class CentipedeBroker(object):
 
 
     def create_process(self, limb_name):
-        print("Creating a new process for limb_name " + limb_name)
         config = self.limb_to_config[limb_name]
         config_data = pickle.dumps(config)
 
@@ -97,14 +96,11 @@ class CentipedeBroker(object):
         ip = data_obj["ip"]
         port = data_obj["port"]
         process_id = data_obj["process_id"]
-        print("Making new process " + str(class_name) + ": " + str(process_id))
 
         self.process_id_busy_lock[process_id] = threading.Lock()
         self.process_id_busy_lock[process_id].acquire()
         self.process_id_is_busy[process_id] = False
         self.process_id_busy_lock[process_id].release()
-        print("new class: " + class_name)
-        print(self.limb_to_process_ids[class_name])
         self.limb_to_process_ids[class_name].append(process_id)
 
         self.socket_handler.associate_ip_with_process_id(ip, process_id)
@@ -254,8 +250,6 @@ class CentipedeBroker(object):
             self.timing_manager.reset_timing_info(self.first_limb)
 
         free_process = None
-        print(first_limb_name)
-        print(self.limb_to_process_ids[first_limb_name])
         for process_id in self.limb_to_process_ids[first_limb_name]:
             self.process_id_busy_lock[process_id].acquire()
             if not self.process_id_is_busy[process_id]:
@@ -265,7 +259,6 @@ class CentipedeBroker(object):
             self.process_id_busy_lock[process_id].release()
 
         if free_process:
-            print("There is a free process for " + first_limb_name)
             self.process_id_busy_lock[free_process].acquire()
             self.process_id_is_busy[free_process] = True
             self.process_id_busy_lock[free_process].release()
@@ -275,7 +268,6 @@ class CentipedeBroker(object):
             self.timing_manager.record_limb_input(first_limb_name)
             self.socket_handler.send_job(free_process, delivery)
         else:
-            print("There is no free process for " + first_limb_name)
             self.limb_to_queue_lock[first_limb_name].acquire()
             self.limb_to_queue[first_limb_name].append(delivery)
             self.limb_to_queue_lock[first_limb_name].release()

@@ -35,7 +35,6 @@ class LimbInvoker(object):
     def run_ingestion_process(self, limb_class, in_config, broker_ip, broker_port):
         limb_obj = limb_class(in_config)
 
-        print("Starting ingestion process.")
         while True:
 
             data_point = None
@@ -50,7 +49,6 @@ class LimbInvoker(object):
             self.ingest_data_lock.release()
 
             if data_point and package:
-                print("we have data point and package")
                 limb_obj.scrape_from_url(data_point, package)
 
                 delivery = {}
@@ -62,8 +60,6 @@ class LimbInvoker(object):
                 pickled_package = dill.dumps(delivery)
                 self.outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.outgoing_data_client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                # self.outgoing_data_client.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
-                print("Sending output to " + str(broker_ip) + " : " + str(broker_port))
                 self.outgoing_data_client.connect((broker_ip, broker_port))
                 self.outgoing_data_client.sendall(pickled_package)
                 self.outgoing_data_client.close()
@@ -72,38 +68,24 @@ class LimbInvoker(object):
     def run_ingestion_server(self, limb_port):
         incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         incoming_data_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        # incoming_data_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # incoming_data_server.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
-        print("Starting server at : " + LIMB_IP + ":" + str(limb_port))
-        print("Limb port is a " + str(type(limb_port)))
-        # incoming_data_server.bind((LIMB_IP, limb_port))
-        incoming_data_server.bind(("192.168.1.219", limb_port))
+        incoming_data_server.bind(("", limb_port))
 
-        print("Now listening.")
         incoming_data_server.listen()
         self.server_running = True
-        print("Now waiting for connection.")
 
         while True:
-            print("In the while loop.")
             conn, addr = incoming_data_server.accept()
-            print("connected from ", addr)
             data = None
             try:
-                print("received connection from " + str(addr))
                 data = conn.recv(2048)
             except ConnectionResetError as e:
-                print("An error occurred!")
                 conn.close()
                 incoming_data_server.close()
                 incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                # incoming_data_server.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
                 incoming_data_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                # incoming_data_server.bind((LIMB_IP, limb_port))
                 host = socket.gethostbyname()
-                incoming_data_server.bind(("192.168.1.219", limb_port))
+                incoming_data_server.bind(("", limb_port))
                 incoming_data_server.listen()
-                conn, addr = incoming_data_server.accept()
                 continue
             except:
                 print("Some unknown error occurred.")
@@ -115,7 +97,6 @@ class LimbInvoker(object):
                     self.process_id = inc_object["process_id"]
 
                 if inc_object["type"] == "job":
-                    print(self.process_id + " just got a job.")
                     if not self.incoming_data_point and not self.incoming_package:
 
                         new_package = inc_object["package_data"]
@@ -147,7 +128,6 @@ class LimbInvoker(object):
 
 
     def send_enrolled_signal(self):
-        print("Sending enrolled")
         delivery = {}
         delivery["type"] = "new_process"
         delivery["class"] = self.limb_class.__name__
@@ -158,12 +138,9 @@ class LimbInvoker(object):
         while not self.server_running:
             time.sleep(0.1)
             continue
-        print("Server is now running")
 
         outgoing_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         outgoing_client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        # outgoing_client.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
-        print("sending new proc data to " + self.broker_ip + ", " + str(self.broker_port))
         outgoing_client.connect((self.broker_ip, self.broker_port))
         outgoing_client.sendall(dill.dumps(delivery))
         outgoing_client.close()
