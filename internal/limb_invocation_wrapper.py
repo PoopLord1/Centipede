@@ -1,18 +1,31 @@
 import socket
 import dill as pickle
 import threading
+import dill
+import uuid
+import time
 
 from centipede.internal import centipede_logger
 from centipede.internal.ip_address import ip as LIMB_IP
 
 
 class LimbInvoker(object):
-    def __init__(self, limb_class, config, broker_ip, broker_port):
+    def __init__(self, limb_class, config, broker_ip, broker_port, limb_port):
         self.incoming_data_point = None
         self.incoming_package = None
         self.outgoing_data_client = None
 
+        self.broker_ip = broker_ip
+        self.broker_port = broker_port
+        self.limb_class = limb_class
+        self.config = config
+        self.limb_port = limb_port
+
         self.ingest_data_lock = threading.Lock()
+        
+        self.server_running = False
+        self.ingestion_server_thread = threading.Thread(target=self.run_ingestion_server, args=(limb_port, ))
+        self.ingestion_server_thread.start()
 
         self.limb_thread = threading.Thread(target=self.run_ingestion_process, args=(limb_class, config, broker_ip, broker_port, ))
         self.limb_thread.start()
@@ -22,6 +35,7 @@ class LimbInvoker(object):
     def run_ingestion_process(self, limb_class, in_config, broker_ip, broker_port):
         limb_obj = limb_class(in_config)
 
+        print("Starting ingestion process.")
         while True:
 
             data_point = None
@@ -36,6 +50,7 @@ class LimbInvoker(object):
             self.ingest_data_lock.release()
 
             if data_point and package:
+                print("we have data point and package")
                 limb_obj.scrape_from_url(data_point, package)
 
                 delivery = {}
@@ -44,9 +59,11 @@ class LimbInvoker(object):
                 delivery["limb_name"] = limb_class.__name__
                 delivery["process_id"] = self.process_id
                 delivery["type"] = "job_response"
-                pickled_package = pickle.dumps(delivery)
+                pickled_package = dill.dumps(delivery)
                 self.outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.outgoing_data_client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                # self.outgoing_data_client.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
+                print("Sending output to " + str(broker_ip) + " : " + str(broker_port))
                 self.outgoing_data_client.connect((broker_ip, broker_port))
                 self.outgoing_data_client.sendall(pickled_package)
                 self.outgoing_data_client.close()
@@ -55,23 +72,41 @@ class LimbInvoker(object):
     def run_ingestion_server(self, limb_port):
         incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         incoming_data_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        incoming_data_server.bind((LIMB_IP, limb_port))
+        # incoming_data_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # incoming_data_server.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
+        print("Starting server at : " + LIMB_IP + ":" + str(limb_port))
+        print("Limb port is a " + str(type(limb_port)))
+        # incoming_data_server.bind((LIMB_IP, limb_port))
+        incoming_data_server.bind(("192.168.1.219", limb_port))
+
+        print("Now listening.")
         incoming_data_server.listen()
-        conn, addr = incoming_data_server.accept()
-        print("Running new limb on port " + str(limb_port))
+        self.server_running = True
+        print("Now waiting for connection.")
 
         while True:
+            print("In the while loop.")
+            conn, addr = incoming_data_server.accept()
+            print("connected from ", addr)
+            data = None
             try:
+                print("received connection from " + str(addr))
                 data = conn.recv(2048)
             except ConnectionResetError as e:
+                print("An error occurred!")
                 conn.close()
                 incoming_data_server.close()
                 incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                # incoming_data_server.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
                 incoming_data_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                incoming_data_server.bind((LIMB_IP, limb_port))
+                # incoming_data_server.bind((LIMB_IP, limb_port))
+                host = socket.gethostbyname()
+                incoming_data_server.bind(("192.168.1.219", limb_port))
                 incoming_data_server.listen()
                 conn, addr = incoming_data_server.accept()
                 continue
+            except:
+                print("Some unknown error occurred.")
 
             if data:
                 inc_object = pickle.loads(data)
@@ -80,6 +115,7 @@ class LimbInvoker(object):
                     self.process_id = inc_object["process_id"]
 
                 if inc_object["type"] == "job":
+                    print(self.process_id + " just got a job.")
                     if not self.incoming_data_point and not self.incoming_package:
 
                         new_package = inc_object["package_data"]
@@ -95,15 +131,42 @@ class LimbInvoker(object):
                     # else:
                     #     conn.sendall(b"working")
 
-                conn.close()
-                incoming_data_server.close()
-                incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                incoming_data_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                incoming_data_server.bind((LIMB_IP, limb_port))
-                incoming_data_server.listen()
-                conn, addr = incoming_data_server.accept()
+                # conn.close()
+                # incoming_data_server.close()
+                # incoming_data_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                # incoming_data_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                # incoming_data_server.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
+                # incoming_data_server.bind((LIMB_IP, limb_port))
+                # incoming_data_server.bind(("192.168.1.219", limb_port))
+                # incoming_data_server.listen()
+                # conn, addr = incoming_data_server.accept()
+            conn.close()
+            # conn, addr = incoming_data_server.accept()
 
             # Some more clauses here, like timing stuff? idk
+
+
+    def send_enrolled_signal(self):
+        print("Sending enrolled")
+        delivery = {}
+        delivery["type"] = "new_process"
+        delivery["class"] = self.limb_class.__name__
+        delivery["ip"] = LIMB_IP
+        delivery["port"] = self.limb_port
+        delivery["process_id"] = str(uuid.uuid4())
+
+        while not self.server_running:
+            time.sleep(0.1)
+            continue
+        print("Server is now running")
+
+        outgoing_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        outgoing_client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        # outgoing_client.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
+        print("sending new proc data to " + self.broker_ip + ", " + str(self.broker_port))
+        outgoing_client.connect((self.broker_ip, self.broker_port))
+        outgoing_client.sendall(dill.dumps(delivery))
+        outgoing_client.close()
 
 
 def create_limb(limb_class, config_data, broker_ip, broker_port, limb_port):
@@ -111,5 +174,10 @@ def create_limb(limb_class, config_data, broker_ip, broker_port, limb_port):
     in_config = pickle.loads(config_data)
     in_config["logger"] = centipede_logger.create_logger(str(limb_class.__name__), in_config["log_level"])
 
-    invoker = LimbInvoker(limb_class, in_config, broker_ip, broker_port)
-    invoker.run_ingestion_server(limb_port)
+    invoker = LimbInvoker(limb_class, in_config, broker_ip, broker_port, limb_port)
+    invoker.send_enrolled_signal()
+
+
+if __name__ == "__main__":
+    from centipede.limbs.empty_limb import EmptyLimb
+    create_limb(EmptyLimb, {"log_level": logging.DEBUG}, "127.0.0.1", 10000, 10001)

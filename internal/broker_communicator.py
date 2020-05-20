@@ -1,5 +1,5 @@
 import socket
-import pickle
+import dill 
 
 from centipede.internal.ip_address import ip as BROKER_IP
 
@@ -22,9 +22,12 @@ class BrokerCommunicator(object):
 
         outgoing_data_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         outgoing_data_client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        print(ip, port)
-        outgoing_data_client.connect((ip, port))
-        outgoing_data_client.sendall(pickle.dumps(delivery))
+        # outgoing_data_client.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
+        print("Sending a job to: " + ip + ":" + str(port))
+        # outgoing_data_client.connect((ip, port))
+        host = socket.gethostbyname("192.168.1.219")
+        outgoing_data_client.connect(("192.168.1.219", port))
+        outgoing_data_client.sendall(dill.dumps(delivery))
         outgoing_data_client.close()
 
 
@@ -42,7 +45,10 @@ class BrokerCommunicator(object):
 
         broker_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         broker_server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        broker_server.bind((BROKER_IP, BROKER_PORT))
+        # broker_server.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, 'eth0'.encode("utf-8"))
+        # broker_server.bind((BROKER_IP, BROKER_PORT))
+        print("Starting broker server at " + BROKER_IP + ":" + str(BROKER_PORT))
+        broker_server.bind(("192.168.1.219", BROKER_PORT))
         broker_server.listen()
         conn, addr = broker_server.accept()
 

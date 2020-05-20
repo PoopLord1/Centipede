@@ -14,6 +14,7 @@ from centipede.internal.limb_timing_manager import TimingManager
 
 class CentipedeBroker(object):
     def __init__(self):
+        multiprocessing.set_start_method("spawn")
         self.limb_to_next_limb = {}
         self.first_limb = None
 
@@ -68,21 +69,16 @@ class CentipedeBroker(object):
 
         process_id = str(uuid.uuid4())
         new_limb_port = self.socket_handler.get_new_port()
-        self.socket_handler.associate_port_with_process_id(new_limb_port, process_id)
-        self.socket_handler.associate_ip_with_process_id(BROKER_IP, process_id)
+        # self.socket_handler.associate_port_with_process_id(new_limb_port, process_id)
+        # self.socket_handler.associate_ip_with_process_id(BROKER_IP, process_id)
 
-        self.timing_manager.init_new_process(process_id)
+        # self.timing_manager.init_new_process(process_id)
 
         limb = self.limb_name_to_class[limb_name]
         new_process = multiprocessing.Process(target=limb_invocation_wrapper.create_limb,
                                               args=(limb, config_data, BROKER_IP, BROKER_PORT, new_limb_port))
         new_process.start()
-
-        self.id_to_process[process_id] = new_process
-        self.process_id_is_busy[process_id] = False
-        self.process_id_busy_lock[process_id] = threading.Lock()
-        self.limb_to_process_ids[limb_name].append(process_id)
-
+        
 
     def handle_incoming_data(self, data):
         data_obj = dill.loads(data)
@@ -101,11 +97,14 @@ class CentipedeBroker(object):
         ip = data_obj["ip"]
         port = data_obj["port"]
         process_id = data_obj["process_id"]
+        print("Making new process " + str(class_name) + ": " + str(process_id))
 
         self.process_id_busy_lock[process_id] = threading.Lock()
         self.process_id_busy_lock[process_id].acquire()
         self.process_id_is_busy[process_id] = False
         self.process_id_busy_lock[process_id].release()
+        print("new class: " + class_name)
+        print(self.limb_to_process_ids[class_name])
         self.limb_to_process_ids[class_name].append(process_id)
 
         self.socket_handler.associate_ip_with_process_id(ip, process_id)
@@ -255,6 +254,8 @@ class CentipedeBroker(object):
             self.timing_manager.reset_timing_info(self.first_limb)
 
         free_process = None
+        print(first_limb_name)
+        print(self.limb_to_process_ids[first_limb_name])
         for process_id in self.limb_to_process_ids[first_limb_name]:
             self.process_id_busy_lock[process_id].acquire()
             if not self.process_id_is_busy[process_id]:
@@ -264,6 +265,7 @@ class CentipedeBroker(object):
             self.process_id_busy_lock[process_id].release()
 
         if free_process:
+            print("There is a free process for " + first_limb_name)
             self.process_id_busy_lock[free_process].acquire()
             self.process_id_is_busy[free_process] = True
             self.process_id_busy_lock[free_process].release()
@@ -273,6 +275,7 @@ class CentipedeBroker(object):
             self.timing_manager.record_limb_input(first_limb_name)
             self.socket_handler.send_job(free_process, delivery)
         else:
+            print("There is no free process for " + first_limb_name)
             self.limb_to_queue_lock[first_limb_name].acquire()
             self.limb_to_queue[first_limb_name].append(delivery)
             self.limb_to_queue_lock[first_limb_name].release()
