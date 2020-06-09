@@ -27,7 +27,7 @@ class LimbInvoker(object):
         self.ingestion_server_thread = threading.Thread(target=self.run_ingestion_server, args=(limb_port, ))
         self.ingestion_server_thread.start()
 
-        self.limb_thread = threading.Thread(target=self.run_ingestion_process, args=(limb_class, config, broker_ip, broker_port, ))
+        self.limb_thread = threading.Thread(target=self.run_ingestion_process, args=(limb_class, config, broker_ip, broker_port))
         self.limb_thread.start()
 
         self.process_id = None
