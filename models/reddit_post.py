@@ -13,7 +13,8 @@ class RedditPost(object):
         self.title = ""
         self.comments_link = ""
         self.content_link = ""
-        self.subreddit = ""
+        self.source = ""
+        self.rank = 0
 
         if input_dict:
             self.post_id = input_dict.get("post_id", "")
@@ -23,7 +24,8 @@ class RedditPost(object):
             self.title = input_dict.get("title", "")
             self.comments_link = input_dict.get("comments_link", "")
             self.content_link = input_dict.get("content_link", "")
-            self.subreddit = input_dict.get("subreddit", "")
+            self.source = input_dict.get("source", "")
+            self.rank = input_dict.get("rank", 0)
 
     def __str__(self):
         return "<RedditPost from " + str(self.post_datetime) + " with comment id " + str(self.post_id) + ">"
