@@ -35,7 +35,7 @@ class SqlManager(Limb):
 
         table_exists = False
         for table in curs:
-            if table[0] == plural_class_name:
+            if table[0].lower() == plural_class_name.lower():
                 table_exists = True
 
         # Create if the table does not exist
@@ -43,7 +43,7 @@ class SqlManager(Limb):
             query = "CREATE TABLE " + plural_class_name + " ("
 
             for attr in attr_types:
-                query += attr + " "
+                query += "`" + attr + "` "
                 if attr_types[attr] == str:
                     query += "varchar(255), "
                 elif attr_types[attr] == int:
@@ -58,7 +58,6 @@ class SqlManager(Limb):
             query = query[:-2]
             query += ");"
 
-            print(query)
             curs.execute(query)
             self.conn.commit()
             curs.close()
@@ -87,18 +86,18 @@ class SqlManager(Limb):
 
     def insert_object(self, class_name, attrs_to_types, attrs_to_values):
         plural_class_name = class_name + "es" if class_name[-1].lower() in ["s", "x"] else class_name + "s"
-        insert_part = "INSERT INTO " + plural_class_name
+        insert_part = "INSERT INTO " + plural_class_name + " "
         keyword_part = "("
         value_part = "VALUES ("
 
         for attr in attrs_to_values:
-            keyword_part += attr + ", "
+            keyword_part += "`" + attr + "`, "
             value_part += "%(" + attr + ")s, "
 
         keyword_part = keyword_part[:-2] + ") "
         value_part = value_part[:-2] + ")"
 
-        query = insert_part + keyword_part + value_part
+        query = insert_part + keyword_part + value_part + ";"
 
         cursor = self.conn.cursor()
         cursor.execute(query, attrs_to_values)
@@ -108,11 +107,8 @@ class SqlManager(Limb):
 
     def scrape_from_url(self, url, package):
         get_objects_fun = self.config["get_object_fun"]
-        print(self.config)
-        print(get_objects_fun)
         if get_objects_fun:
             objects = get_objects_fun(package)
-            print(objects)
             for object in objects:
                 class_name, attrs_to_types, attrs_to_values = self.fetch_object_data(object)
                 self.create_table_if_not_exist(class_name, attrs_to_types)
