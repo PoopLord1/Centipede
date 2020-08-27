@@ -79,6 +79,9 @@ class SqlManager(Limb):
         attr_to_type["_cent_ID"] = str
         attr_to_value["_cent_ID"] = str(uuid.uuid4())
 
+        attr_to_type["_cent_timestamp"] = datetime.datetime
+        attr_to_value["_cent_timestamp"] = datetime.datetime.now()
+
         class_name = object.__class__.__name__
 
         return class_name, attr_to_type, attr_to_value
