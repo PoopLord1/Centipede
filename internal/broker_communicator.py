@@ -46,7 +46,7 @@ class BrokerCommunicator(object):
         conn, addr = broker_server.accept()
 
         while True:
-            data = conn.recv(2048)
+            data = conn.recv(16384) # TODO - put in a layer similar to TCP where we join our packets together?
 
             return_string = incoming_data_handler(data)
 

@@ -77,7 +77,7 @@ class LimbInvoker(object):
             conn, addr = incoming_data_server.accept()
             data = None
             try:
-                data = conn.recv(2048)
+                data = conn.recv(16384)
             except ConnectionResetError as e:
                 conn.close()
                 incoming_data_server.close()
