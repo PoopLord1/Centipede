@@ -14,11 +14,11 @@ from centipede.models.reddit_user import RedditUser
 
 import re, time, base64, urllib, numpy, json, logging, random
 
-UPVOTE_FORMAT_RE = re.compile("[\d.]+k?")
-
 NUMBER_POSTS_TO_SCRAPE = 30 # Scrape 30 posts on infinitely-loading pages, if that is not too much
 
 GET_ID_FROM_COMMENTS_PAGE_RE = re.compile(".*reddit.com/r/.+/comments/([^/]+)")
+UPVOTE_FORMAT_RE = re.compile("[\d.]+k?")
+
 
 class RedditScraper(ChromeSeleniumScraper):
 
@@ -49,10 +49,10 @@ class RedditScraper(ChromeSeleniumScraper):
         self.driver.get(page_url)
         self.logger.info("Now handling page " + page_url)
 
-        wait_time = random.randrange(5, 15)
+        wait_time = random.randrange(0, 8)
         time.sleep(wait_time)
 
-        data_package.reddit_posts = []
+        data_package.reddit_info = []
 
         posts = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div[4]/div") # assuming 1 based
         print("Length of posts: " + str(len(posts)))
@@ -94,10 +94,10 @@ class RedditScraper(ChromeSeleniumScraper):
                 pass
 
             poster_name_obj = metadata_panel.find_element_by_xpath(".//div/div/div/a")
-            print(poster_name_obj.text)
+            print("Author: " + poster_name_obj.text)
 
             time_posted_obj = metadata_panel.find_element_by_xpath("./div/div/a")
-            print(time_posted_obj.text)
+            print("Time posted: " + time_posted_obj.text)
 
             print("Promoted: " + str(promoted))
             if promoted:
@@ -108,7 +108,7 @@ class RedditScraper(ChromeSeleniumScraper):
                 else:
                     title_obj = post.find_element_by_xpath(".//div/div/div[2]/div[2]/div/a/div/h3")
                 title = title_obj.text
-            print(title)
+            print("Post title: " + title)
 
             if promoted:
                 comments_link = "This was an ad; don't worry about the link for the reddit post"
@@ -118,7 +118,7 @@ class RedditScraper(ChromeSeleniumScraper):
                 else:
                     title_link_obj = post.find_element_by_xpath(".//div/div/div[2]/div[2]/div/a")
                 comments_link = title_link_obj.get_attribute("href")
-            print(comments_link)
+            print("Link to comments: " + comments_link)
 
             if promoted:
                 content_link = "This was an ad; dont worry about the link to the article"
@@ -131,7 +131,7 @@ class RedditScraper(ChromeSeleniumScraper):
                     content_link = link_obj.get_attribute("href")
                 except NoSuchElementException:
                     content_link = comments_link
-            print(content_link)
+            print("Link to content: " + content_link)
 
             print()
 
@@ -142,25 +142,29 @@ class RedditScraper(ChromeSeleniumScraper):
 
             if not promoted:
                 post_data = RedditPost(input_dict={"post_id": post_id,
-                                                  "points": score_obj.text,
-                                                  "post_author": poster_name_obj.text,
-                                                  "post_datetime": time_posted_obj.text,
-                                                  "title": title_obj.text,
-                                                  "comments_link": comments_link,
-                                                  "content_link": content_link,
-                                                  "source": page_url,
-                                                  "rank": i})
-                # data_package.linked_resources += comments_link
+                                                   "points": score_obj.text,
+                                                   "post_author": poster_name_obj.text,
+                                                   "post_datetime": time_posted_obj.text,
+                                                   "title": title_obj.text,
+                                                   "comments_link": comments_link,
+                                                   "content_link": content_link,
+                                                   "source": page_url,
+                                                   "rank": i})
 
-            data_package.reddit_posts.append(post_data)
+                data_package.linked_resources.append(comments_link)
+                data_package.linked_resources.append("http://www.reddit.com/u/" + poster_name_obj.text)
+
+            data_package.reddit_info.append(post_data)
 
 
     def scrape_user_page(self, page_url, data_package):
         self.driver.get(page_url)
         self.logger.info("Now handling page " + page_url)
 
-        wait_time = random.randrange(5, 15)
+        wait_time = random.randrange(0, 8)
         time.sleep(wait_time)
+
+        data_package.reddit_info = []
 
         username = None
         print(page_url)
@@ -179,10 +183,9 @@ class RedditScraper(ChromeSeleniumScraper):
         total_karma_object = info_panel_obj.find_element_by_xpath("./div/div[4]/div/div/span")
         print(total_karma_object.text)
 
-        data_package.reddit_users = []
-        data_package.reddit_users.append(RedditUser(input_dict={"user_id": username,
-                                                                "total_karma": total_karma_object.text,
-                                                                "cake_day_datetime": cake_day_datetime}))
+        data_package.reddit_info.append(RedditUser(input_dict={"user_id": username,
+                                                               "total_karma": total_karma_object.text,
+                                                               "cake_day_datetime": cake_day_datetime}))
 
 
         post_button_object = self.driver.find_element_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/a[2]")
@@ -191,7 +194,6 @@ class RedditScraper(ChromeSeleniumScraper):
         time.sleep(wait_time)
 
         posts = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div[3]/div")
-        data_package.reddit_posts = []
         for i, post in enumerate(posts):
             scoring_element = post.find_element_by_xpath(".//div/div/div")
             score_obj = scoring_element.find_element_by_xpath(".//div/div")
@@ -268,7 +270,9 @@ class RedditScraper(ChromeSeleniumScraper):
                                                "source": page_url,
                                                "rank": i})
 
-            data_package.reddit_posts.append(post_data)
+            data_package.reddit_info.append(post_data)
+
+            data_package.linked_resources.append(comments_link)
 
         comment_button_object = self.driver.find_element_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/a[3]")
         comment_button_object.click()
@@ -307,7 +311,9 @@ class RedditScraper(ChromeSeleniumScraper):
                                                      "source": page_url,
                                                      "rank": i})
 
-            data_package.reddit_comments.append(comment_data)
+            data_package.reddit_info.append(comment_data)
+
+            # data_package.linked_resources.append() # TODO - append the post from which this comment was left
 
         print("done")
 
@@ -317,8 +323,10 @@ class RedditScraper(ChromeSeleniumScraper):
         self.driver.get(page_url)
         self.logger.info("Now handling page " + page_url)
 
-        wait_time = random.randrange(5, 15)
+        wait_time = random.randrange(0, 8)
         time.sleep(wait_time)
+
+        data_package.reddit_info = []
 
         # view_comments_button = self.driver.find_element_by_xpath("//body/div/div/div[2]/div[2]/div/div[3]/div/div[2]/div[4]/div/button")
         view_comments_button = None
@@ -335,7 +343,6 @@ class RedditScraper(ChromeSeleniumScraper):
         comments = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div[3]/div/div[2]/div[6]/div/div/div/div")
         print(len(comments))
 
-        data_package.reddit_comments = []
 
         for i, comment in enumerate(comments):
 
@@ -402,7 +409,7 @@ class RedditScraper(ChromeSeleniumScraper):
                                                      "source": page_url,
                                                      "rank": i})
 
-            data_package.reddit_comments.append(comment_data)
+            data_package.reddit_info.append(comment_data)
 
 
 if __name__ == "__main__":
