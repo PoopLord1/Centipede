@@ -37,7 +37,7 @@ class Centipede(object):
             self.broker.create_process(limb.__name__)
 
 
-    #@text_notification_manager.text_alert_on_exception
+    # @text_notification_manager.text_alert_on_exception
     def walk(self):
         for job in self.job_generator.iterate_pages():
             package = Package()
@@ -45,5 +45,4 @@ class Centipede(object):
             if job:
                 self.broker.put_data_in_pipeline(job.data_point)
 
-            # TODO - what how is package populated anymore
-            self.job_generator.add_to_queue(package.get_linked_resources())
+            self.job_generator.add_to_queue(self.broker.grab_linked_resources())

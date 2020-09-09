@@ -37,9 +37,20 @@ class CentipedeBroker(object):
 
         self.support_brokers = []
 
+        self.linked_resources = []
+        self.linked_resources_lock = threading.Lock()
+
 
     def save_limb_config(self, limb, config):
         self.limb_to_config[limb.__name__] = config
+
+
+    def grab_linked_resources(self):
+        self.linked_resources_lock.acquire()
+        resources = self.linked_resources
+        self.linked_resources = []
+        self.linked_resources_lock.release()
+        return resources
 
 
     def set_limb_pipeline(self, limbs):
@@ -64,7 +75,7 @@ class CentipedeBroker(object):
 
     def create_process(self, limb_name):
         config = self.limb_to_config[limb_name]
-        config_data = pickle.dumps(config)
+        config_data = dill.dumps(config)
 
         process_id = str(uuid.uuid4())
         new_limb_port = self.socket_handler.get_new_port()
@@ -163,7 +174,6 @@ class CentipedeBroker(object):
         return pickle.dumps(status_data)
 
 
-
     def handle_incoming_limb_data(self, data_obj):
         limb_name = data_obj["limb_name"]
         first_process_id = data_obj["process_id"]
@@ -206,6 +216,12 @@ class CentipedeBroker(object):
                 self.limb_to_queue_lock[next_limb_name].acquire()
                 self.limb_to_queue[next_limb_name].append(data_obj)
                 self.limb_to_queue_lock[next_limb_name].release()
+
+        else: # There is no next limb for this data package; we are at the end of the pipeline
+            package = data_obj["package_data"]
+            self.linked_resources_lock.acquire()
+            self.linked_resources.extend(package.get_linked_resources())
+            self.linked_resources_lock.release()
 
         # Send another job to that limb if there is one in the queue
         if self.limb_to_queue[limb_name]:
