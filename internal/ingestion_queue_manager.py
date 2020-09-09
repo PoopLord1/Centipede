@@ -4,6 +4,7 @@ IngestionQueueManager - Manages, autosaves, and adds to the queue of resources t
 
 import threading
 import os
+import time
 
 from centipede.internal.job import Job
 
@@ -13,7 +14,8 @@ class IngestionQueueManager(object):
         # A list of urls that are in queue to be scraped.
         self.config = config
         self.queue_lock = threading.Lock()
-        self.ingestion_queue = []
+        self.periodic_queue = []
+        self.immediate_queue = []
         # No longer load from autosave
 
         self.autosave_thread = None
@@ -28,7 +30,13 @@ class IngestionQueueManager(object):
         for data_point in config["seed_urls"]:
             new_job = Job(data_point, self.is_periodic)
             new_job.set_period(self.period_seconds)
-            self.ingestion_queue.append(new_job)
+            self.periodic_queue.append(new_job)
+
+        self.throttled = config["throttled"]
+        self.last_job_time = -1
+        self.throttle_period_seconds = None
+        if self.throttled:
+            self.throttle_period_seconds = config["throttle_period_seconds"]
 
 
     def _load_autosave(self):
@@ -44,7 +52,7 @@ class IngestionQueueManager(object):
         return ingestion_queue
 
     def has_next(self):
-        return len(self.ingestion_queue) > 0
+        return len(self.periodic_queue) > 0 or len(self.immediate_queue) > 0
 
     def next_resource(self):
         """
@@ -52,16 +60,30 @@ class IngestionQueueManager(object):
         """
 
         next_job = None
+        #
+        # if self.ingestion_queue[0].is_ready():
+        #     next_job = self.ingestion_queue.pop(0)
+        #
+        #     if next_job.repeat:
+        #         new_job = Job(next_job.data_point, next_job.repeat)
+        #         new_job.set_period(next_job.period)
+        #         self.queue_lock.acquire()
+        #         self.ingestion_queue.append(new_job)
+        #         self.queue_lock.release()
 
-        if self.ingestion_queue[0].is_ready():
-            next_job = self.ingestion_queue.pop(0)
+        if not self.throttled or time.time() - self.last_job_time > self.throttle_period_seconds:
 
-            if next_job.repeat:
+            if len(self.immediate_queue) > 0:
+                next_job = self.immediate_queue.pop(0)
+                self.last_job_time = time.time()
+
+            elif len(self.periodic_queue) > 0 and self.periodic_queue[0].is_ready():
+                next_job = self.periodic_queue.pop(0)
+
                 new_job = Job(next_job.data_point, next_job.repeat)
                 new_job.set_period(next_job.period)
-                self.queue_lock.acquire()
-                self.ingestion_queue.append(new_job)
-                self.queue_lock.release()
+                self.periodic_queue.append(new_job)
+                self.last_job_time = time.time()
 
         return next_job
 
@@ -72,7 +94,7 @@ class IngestionQueueManager(object):
         """
         self.queue_lock.acquire()
         new_job = Job(url, False)
-        self.ingestion_queue.append(new_job)
+        self.immediate_queue.append(new_job)
         self.queue_lock.release()
 
 
@@ -85,7 +107,7 @@ class IngestionQueueManager(object):
             new_jobs.append(Job(resource, False))
 
         self.queue_lock.acquire()
-        self.ingestion_queue.extend(new_jobs)
+        self.immediate_queue.extend(new_jobs)
         self.queue_lock.release()
 
 
@@ -98,7 +120,7 @@ class IngestionQueueManager(object):
 
         fp = open(autosave_filename, "w+")
         self.queue_lock.acquire()
-        fp.write(self.ingestion_queue.join("\n"))
+        fp.write(self.immediate_queue.join("\n"))
         self.queue_lock.release()
         fp.close()
 
@@ -117,7 +139,7 @@ class IngestionQueueManager(object):
             os.remove(full_filepath)
 
             self.queue_lock.acquire()
-            self.ingestion_queue.extend(resources)
+            self.immediate_queue.extend(resources)
             self.queue_lock.release()
 
 

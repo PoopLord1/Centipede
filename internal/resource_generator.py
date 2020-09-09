@@ -11,12 +11,14 @@ class UrlGenerator(object):
 
         self.logger = centipede_logger.create_logger(self.__class__.__name__, logging.DEBUG)
 
+
     def iterate_pages(self):
         while self.resource_queue.has_next():
             # Pop thing off of IngestionQueue
             resource_url = self.resource_queue.next_resource()
 
             yield resource_url
-			
+
+
     def add_to_queue(self, resources):
         self.resource_queue.push_resources(resources)
