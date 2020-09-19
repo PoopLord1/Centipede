@@ -49,7 +49,7 @@ class RedditScraper(ChromeSeleniumScraper):
         self.driver.get(page_url)
         self.logger.info("Now handling page " + page_url)
 
-        wait_time = random.randrange(0, 8)
+        wait_time = random.randrange(5, 15)
         time.sleep(wait_time)
 
         data_package.reddit_info = []
@@ -152,7 +152,7 @@ class RedditScraper(ChromeSeleniumScraper):
                                                    "rank": i})
 
                 data_package.linked_resources.append(comments_link)
-                data_package.linked_resources.append("http://www.reddit.com/u/" + poster_name_obj.text)
+                data_package.linked_resources.append("http://www.reddit.com/" + poster_name_obj.text)
 
             data_package.reddit_info.append(post_data)
 
@@ -161,7 +161,7 @@ class RedditScraper(ChromeSeleniumScraper):
         self.driver.get(page_url)
         self.logger.info("Now handling page " + page_url)
 
-        wait_time = random.randrange(0, 8)
+        wait_time = random.randrange(5, 15)
         time.sleep(wait_time)
 
         data_package.reddit_info = []
@@ -226,7 +226,7 @@ class RedditScraper(ChromeSeleniumScraper):
             promoted = False
             try:
                 promoted_obj = metadata_panel.find_element_by_xpath("./div/div/span[1]")
-                print(promoted_obj.get_attribute("innerHTML"))
+                # print(promoted_obj.get_attribute("innerHTML"))
                 promoted = promoted_obj.get_attribute("innerHTML").upper() == "PROMOTED"
             except:
                 pass
@@ -279,51 +279,66 @@ class RedditScraper(ChromeSeleniumScraper):
         wait_time = random.randrange(5, 15)
         time.sleep(wait_time)
 
-        comments = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div[4]/div/div[3]/div/div")
-        data_package.reddit_comments = []
-        for i, comment in enumerate(comments):
-            id_obj = comment.find_element_by_xpath("./div/div")
-            id = id_obj.get_attribute("id")
-            print(id)
+        comment_classes = self.driver.find_elements_by_class_name("Comment")
 
-            username_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div/div/a")
-            username = username_obj.text
-            print(username)
+        last_comment_id = ""
+        for comment_class in comment_classes:
 
-            flairs_and_points = comment.find_elements_by_xpath("./div/div/div[2]/div[2]/div/span")
-            points_obj = flairs_and_points[-2]
-            points = points_obj.get_attribute("innerHTML")
-            print(points)
+            comments_unfiltered = comment_class.find_elements_by_xpath(".//div/div")
 
-            time_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div/a/span")
-            time_string = time_obj.get_attribute("innerHTML")
-            print(time_string)
+            comments = []
+            for comment in comments_unfiltered:
+                if len(comment.get_attribute("innerHTML").strip()) and len(comment.find_elements_by_tag_name("button")) > 1:
+                    comments.append(comment)
 
-            body_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div[2]/div")
-            body = body_obj.text
-            print(body)
+            for i, comment in enumerate(comments):
+                try:
+                    time_obj = comment.find_element_by_xpath(".//div/a[@rel='nofollow']")
+                    full_id_string = time_obj.get_attribute("id")
+                    comment_id = full_id_string[25:]
 
-            comment_data = RedditComment(input_dict={"comment_id": id,
-                                                     "content": body,
-                                                     "comment_datetime": time_string,
-                                                     "comment_author": username,
-                                                     "points": points,
-                                                     "source": page_url,
-                                                     "rank": i})
+                    if comment_id == last_comment_id:
+                        continue
+                    else:
+                        last_comment_id = comment_id
 
-            data_package.reddit_info.append(comment_data)
+                    print("\n")
+                    print("Comment ID: " + full_id_string + " truncated to " + comment_id)
 
-            # data_package.linked_resources.append() # TODO - append the post from which this comment was left
+                    points = 0
+                    points_obj = comment.find_element_by_xpath(".//div[1]/span")
+                    points_string = points_obj.text
+                    points_match = UPVOTE_FORMAT_RE.match(points_string)
+                    if points_match:
+                        points = points_match.group(0)
+                    print("Points: " + str(points))
 
-        print("done")
+                    time_string = time_obj.text
+                    print("Time comment posted: " + time_string)
 
+                    body_objs = comment.find_elements_by_tag_name("p")
+                    body = body_objs[0].text
+                    print("Comment: " + body)
+
+                    comment_data = RedditComment(input_dict={"comment_id": comment_id,
+                                                             "content": body,
+                                                             "comment_datetime": time_string,
+                                                             "comment_author": username,
+                                                             "points": points,
+                                                             "source": page_url,
+                                                             "rank": i})
+
+                    data_package.reddit_info.append(comment_data)
+
+                except NoSuchElementException:
+                    continue
 
 
     def scrape_post_page(self, page_url, data_package):
         self.driver.get(page_url)
         self.logger.info("Now handling page " + page_url)
 
-        wait_time = random.randrange(0, 8)
+        wait_time = random.randrange(5, 15)
         time.sleep(wait_time)
 
         data_package.reddit_info = []
@@ -342,7 +357,6 @@ class RedditScraper(ChromeSeleniumScraper):
         # comments = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div/div[2]/div[2]/div[4]/div/div/div/div") # 1-based
         comments = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div[3]/div/div[2]/div[6]/div/div/div/div")
         print(len(comments))
-
 
         for i, comment in enumerate(comments):
 
@@ -393,7 +407,7 @@ class RedditScraper(ChromeSeleniumScraper):
             points = points_obj.get_attribute("innerHTML")
             print(points)
 
-            time_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div/a/span")
+            time_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div/a/span") # Invalid xpath?
             time_string = time_obj.get_attribute("innerHTML")
             print(time_string)
 
@@ -420,5 +434,7 @@ if __name__ == "__main__":
     scraper = RedditScraper(config_dict)
 
     pkg = Package()
-    scraper.scrape_from_url("http://www.reddit.com/r/judo/", pkg)
+    scraper.scrape_from_url("http://www.reddit.com/u/shivam183/", pkg)
+    # scraper.scrape_from_url("https://www.reddit.com/r/KidsAreFuckingStupid/comments/ir38uu/kid_spends_about_150_on_fortnite_and_the_rest_is/", pkg)
+    # scraper.scrape_from_url("https://www.reddit.com/r/judo/comments/ir0pmy/collegiate_champion_jeremy_glick_joined_in_the/", pkg)
     print(pkg.__dict__)
