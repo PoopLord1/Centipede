@@ -63,7 +63,7 @@ class RedditScraper(ChromeSeleniumScraper):
 
             scoring_element = post.find_element_by_xpath(".//div/div/div[1]")
             score_obj = scoring_element.find_element_by_xpath(".//div/div")
-            print(score_obj.text)
+            print("Score: " + score_obj.text)
 
             first_text_in_post = post.find_element_by_xpath(".//div/div/div[2]/div[1]")
             span_obj = None
@@ -75,7 +75,7 @@ class RedditScraper(ChromeSeleniumScraper):
                 pass
 
             pinned = False
-            print(span_obj_exists)
+            print("Is pinned? " + str(span_obj_exists))
             # print(span_obj.get_attribute("innerHTML"))
             if (span_obj_exists): #  and "pinned" in span_obj.get_attribute("innerHTML").lower()):
                 pinned = True
@@ -356,6 +356,11 @@ class RedditScraper(ChromeSeleniumScraper):
 
         # comments = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div/div[2]/div[2]/div[4]/div/div/div/div") # 1-based
         comments = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div[3]/div/div[2]/div[6]/div/div/div/div")
+
+        # post_obj = self.driver.find_element_by_class_name("Post")
+        # post_parent = post_obj.parent
+        # comments = post_obj.find_elements_by_xpath(".//div[5]/div/div/div/div")
+
         print(len(comments))
 
         for i, comment in enumerate(comments):
@@ -369,6 +374,14 @@ class RedditScraper(ChromeSeleniumScraper):
                 pass
 
             if continue_thread_obj:
+                continue
+
+            is_more_replies_button = False
+            div_id_obj = comment.find_element_by_xpath(".//div/div")
+            if div_id_obj and div_id_obj.get_attribute("id").startswith("moreComments"):
+                is_more_replies_button = True
+
+            if is_more_replies_button:
                 continue
 
             # Reddit also shows deleted comments in a div just like regular comments, but without the data.
@@ -407,11 +420,11 @@ class RedditScraper(ChromeSeleniumScraper):
             points = points_obj.get_attribute("innerHTML")
             print(points)
 
-            time_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div/a/span") # Invalid xpath?
+            time_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div[1]/a") # Invalid xpath?
             time_string = time_obj.get_attribute("innerHTML")
             print(time_string)
 
-            body_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div[2]/div")
+            body_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div[2]/div/p")
             body = body_obj.text
             print(body)
 
@@ -434,7 +447,7 @@ if __name__ == "__main__":
     scraper = RedditScraper(config_dict)
 
     pkg = Package()
-    scraper.scrape_from_url("http://www.reddit.com/u/shivam183/", pkg)
+    # scraper.scrape_from_url("http://www.reddit.com/r/judo", pkg)
     # scraper.scrape_from_url("https://www.reddit.com/r/KidsAreFuckingStupid/comments/ir38uu/kid_spends_about_150_on_fortnite_and_the_rest_is/", pkg)
-    # scraper.scrape_from_url("https://www.reddit.com/r/judo/comments/ir0pmy/collegiate_champion_jeremy_glick_joined_in_the/", pkg)
+    scraper.scrape_from_url("https://www.reddit.com/r/judo/comments/ir0pmy/collegiate_champion_jeremy_glick_joined_in_the/", pkg)
     print(pkg.__dict__)
