@@ -18,6 +18,7 @@ NUMBER_POSTS_TO_SCRAPE = 30 # Scrape 30 posts on infinitely-loading pages, if th
 
 GET_ID_FROM_COMMENTS_PAGE_RE = re.compile(".*reddit.com/r/.+/comments/([^/]+)")
 UPVOTE_FORMAT_RE = re.compile("[\d.]+k?")
+GET_SUBREDDIT_FROM_URL_RE = re.compile(".*reddit\.com/r/(.+)")
 
 
 class RedditScraper(ChromeSeleniumScraper):
@@ -53,6 +54,12 @@ class RedditScraper(ChromeSeleniumScraper):
         time.sleep(wait_time)
 
         data_package.reddit_info = []
+
+        subreddit = ""
+        subreddit_match_obj = GET_SUBREDDIT_FROM_URL_RE.match(page_url)
+        if subreddit_match_obj:
+            subreddit = subreddit_match_obj.group(1)
+            print("Subreddit: " + subreddit)
 
         posts = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div[4]/div") # assuming 1 based
         print("Length of posts: " + str(len(posts)))
@@ -152,6 +159,7 @@ class RedditScraper(ChromeSeleniumScraper):
                                                    "comments_link": comments_link,
                                                    "content_link": content_link,
                                                    "source": page_url,
+                                                   "subreddit": subreddit,
                                                    "rank": i})
 
                 data_package.linked_resources.append(comments_link)
@@ -271,6 +279,7 @@ class RedditScraper(ChromeSeleniumScraper):
                                                "comments_link": comments_link,
                                                "content_link": content_link,
                                                "source": page_url,
+                                               "subreddit": subreddit_obj.text,
                                                "rank": i})
 
             data_package.reddit_info.append(post_data)
