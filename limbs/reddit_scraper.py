@@ -355,7 +355,11 @@ class RedditScraper(ChromeSeleniumScraper):
             view_comments_button.click()
 
         # comments = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div/div[2]/div[2]/div[4]/div/div/div/div") # 1-based
-        comments = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div[3]/div/div[2]/div[6]/div/div/div/div")
+        # comments = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div[3]/div/div[2]/div[6]/div/div/div/div")
+
+        page_sections = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div[3]/div/div[2]/div")
+        comments_section = page_sections[-1]
+        comments = comments_section.find_elements_by_xpath("./div/div/div/div")
 
         # post_obj = self.driver.find_element_by_class_name("Post")
         # post_parent = post_obj.parent
@@ -448,6 +452,6 @@ if __name__ == "__main__":
 
     pkg = Package()
     # scraper.scrape_from_url("http://www.reddit.com/r/judo", pkg)
-    # scraper.scrape_from_url("https://www.reddit.com/r/KidsAreFuckingStupid/comments/ir38uu/kid_spends_about_150_on_fortnite_and_the_rest_is/", pkg)
-    scraper.scrape_from_url("https://www.reddit.com/r/judo/comments/ir0pmy/collegiate_champion_jeremy_glick_joined_in_the/", pkg)
+    scraper.scrape_from_url("https://www.reddit.com/r/KidsAreFuckingStupid/comments/ir38uu/kid_spends_about_150_on_fortnite_and_the_rest_is/", pkg)
+    # scraper.scrape_from_url("https://www.reddit.com/r/judo/comments/ir0pmy/collegiate_champion_jeremy_glick_joined_in_the/", pkg)
     print(pkg.__dict__)
