@@ -93,30 +93,33 @@ class RedditScraper(ChromeSeleniumScraper):
             except:
                 pass
 
-            poster_name_obj = metadata_panel.find_element_by_xpath(".//div/div/div/a")
-            print("Author: " + poster_name_obj.text)
+            poster_name_objs = metadata_panel.find_elements_by_tag_name("a")
+            print("Author: " + poster_name_objs[0].text)
+            poster_name = poster_name_objs[0].text
 
-            time_posted_obj = metadata_panel.find_element_by_xpath("./div/div/a")
-            print("Time posted: " + time_posted_obj.text)
+            time_posted_objs = metadata_panel.find_elements_by_tag_name("a")
+            print("Time posted: " + time_posted_objs[-1].text)
+            time_posted = time_posted_objs[-1].text
 
             print("Promoted: " + str(promoted))
+            title_obj = None
             if promoted:
                 title = "This was an ad; don't worry about the title"
             else:
                 if pinned:
                     title_obj = post.find_element_by_xpath(".//div/div/div[2]/div[3]/div/a/div/h3")
                 else:
-                    title_obj = post.find_element_by_xpath(".//div/div/div[2]/div[2]/div/a/div/h3")
+                    # title_obj = post.find_element_by_xpath(".//div/div/div[2]/div[2]/div/a/div/h3")
+                    title_objs = post.find_elements_by_tag_name("h3")
+                    print("Number of potential H3 objects in the post: " + str(len(title_objs)))
+                    title_obj = title_objs[0]
                 title = title_obj.text
             print("Post title: " + title)
 
             if promoted:
                 comments_link = "This was an ad; don't worry about the link for the reddit post"
             else:
-                if pinned:
-                    title_link_obj = post.find_element_by_xpath(".//div/div/div[2]/div[3]/div/a")
-                else:
-                    title_link_obj = post.find_element_by_xpath(".//div/div/div[2]/div[2]/div/a")
+                title_link_obj = title_obj.find_element_by_xpath("../..")
                 comments_link = title_link_obj.get_attribute("href")
             print("Link to comments: " + comments_link)
 
@@ -143,8 +146,8 @@ class RedditScraper(ChromeSeleniumScraper):
             if not promoted:
                 post_data = RedditPost(input_dict={"post_id": post_id,
                                                    "points": score_obj.text,
-                                                   "post_author": poster_name_obj.text,
-                                                   "post_datetime": time_posted_obj.text,
+                                                   "post_author": poster_name,
+                                                   "post_datetime": time_posted,
                                                    "title": title_obj.text,
                                                    "comments_link": comments_link,
                                                    "content_link": content_link,
@@ -152,7 +155,7 @@ class RedditScraper(ChromeSeleniumScraper):
                                                    "rank": i})
 
                 data_package.linked_resources.append(comments_link)
-                data_package.linked_resources.append("http://www.reddit.com/" + poster_name_obj.text)
+                data_package.linked_resources.append("http://www.reddit.com/" + poster_name)
 
             data_package.reddit_info.append(post_data)
 
@@ -451,7 +454,7 @@ if __name__ == "__main__":
     scraper = RedditScraper(config_dict)
 
     pkg = Package()
-    # scraper.scrape_from_url("http://www.reddit.com/r/judo", pkg)
-    scraper.scrape_from_url("https://www.reddit.com/r/KidsAreFuckingStupid/comments/ir38uu/kid_spends_about_150_on_fortnite_and_the_rest_is/", pkg)
+    scraper.scrape_from_url("http://www.reddit.com/r/judo", pkg)
+    # scraper.scrape_from_url("https://www.reddit.com/r/KidsAreFuckingStupid/comments/ir38uu/kid_spends_about_150_on_fortnite_and_the_rest_is/", pkg)
     # scraper.scrape_from_url("https://www.reddit.com/r/judo/comments/ir0pmy/collegiate_champion_jeremy_glick_joined_in_the/", pkg)
     print(pkg.__dict__)
