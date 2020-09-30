@@ -45,7 +45,7 @@ class SqlManager(Limb):
             for attr in attr_types:
                 query += "`" + attr + "` "
                 if attr_types[attr] == str:
-                    query += "varchar(255), "
+                    query += "varchar(2048), "
                 elif attr_types[attr] == int:
                     query += "int, "
                 elif attr_types[attr] == float:
@@ -58,8 +58,13 @@ class SqlManager(Limb):
             query = query[:-2]
             query += ");"
 
-            curs.execute(query)
-            self.conn.commit()
+            try:
+                curs.execute(query)
+                self.conn.commit()
+            except Exception as e:
+                self.logger.ERROR("Exception attempting to execute the query: " + query)
+                self.logger.ERROR("\t" + e)
+
             curs.close()
 
 
