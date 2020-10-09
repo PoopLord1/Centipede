@@ -8,7 +8,7 @@ import socket
 import pickle
 import decimal
 
-from centipede.internal.ip_address import ip as BROKER_IP
+from internal.ip_address import ip as BROKER_IP
 
 PORT = 10000
 
