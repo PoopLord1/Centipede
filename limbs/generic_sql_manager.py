@@ -45,7 +45,7 @@ class SqlManager(Limb):
             for attr in attr_types:
                 query += "`" + attr + "` "
                 if attr_types[attr] == str:
-                    query += "varchar(2048), "
+                    query += "text, "
                 elif attr_types[attr] == int:
                     query += "int, "
                 elif attr_types[attr] == float:
@@ -62,13 +62,13 @@ class SqlManager(Limb):
                 curs.execute(query)
                 self.conn.commit()
             except Exception as e:
-                self.logger.ERROR("Exception attempting to execute the query: " + query)
-                self.logger.ERROR("\t" + e)
+                self.logger.error("Exception attempting to execute the query: " + query)
+                self.logger.error("\t" + str(e))
 
             curs.close()
 
 
-    def fetch_object_data(self, object):
+    def fetch_object_data(self, object, url):
         attr_to_type = {}
         attr_to_value = {}
         for attr in object.__dict__:
@@ -86,6 +86,9 @@ class SqlManager(Limb):
 
         attr_to_type["_cent_timestamp"] = datetime.datetime
         attr_to_value["_cent_timestamp"] = datetime.datetime.now()
+
+        attr_to_type["_cent_resource"] = str
+        attr_to_value["_cent_resource"] = url
 
         class_name = object.__class__.__name__
 
@@ -118,7 +121,7 @@ class SqlManager(Limb):
         if get_objects_fun:
             objects = get_objects_fun(package)
             for object in objects:
-                class_name, attrs_to_types, attrs_to_values = self.fetch_object_data(object)
+                class_name, attrs_to_types, attrs_to_values = self.fetch_object_data(object, url)
                 self.create_table_if_not_exist(class_name, attrs_to_types)
                 self.insert_object(class_name, attrs_to_types, attrs_to_values)
 
