@@ -11,6 +11,7 @@ from centipede.internal.broker_communicator import BrokerCommunicator, BROKER_IP
 from centipede.internal import limb_invocation_wrapper
 from centipede.internal.limb_timing_manager import TimingManager
 
+PERIODIC_JOB_CHECK_DELAY = 1
 
 class CentipedeBroker(object):
     def __init__(self):
@@ -32,6 +33,8 @@ class CentipedeBroker(object):
         self.socket_handler = BrokerCommunicator()
         self.broker_server = threading.Thread(target=self.socket_handler.run_broker_server, args=(self.handle_incoming_data, ))
         self.broker_server.start()
+
+        threading.Timer(10, self.check_for_new_job).start()
 
         self.timing_manager = TimingManager()
 
@@ -287,3 +290,30 @@ class CentipedeBroker(object):
             self.limb_to_queue_lock[first_limb_name].acquire()
             self.limb_to_queue[first_limb_name].append(delivery)
             self.limb_to_queue_lock[first_limb_name].release()
+
+
+    def check_for_new_job(self):
+        first_limb_name = self.first_limb.__name__
+        free_process = None
+        for process_id in self.limb_to_process_ids[first_limb_name]:
+            self.process_id_busy_lock[process_id].acquire()
+            if not self.process_id_is_busy[process_id]:
+                free_process = process_id
+                self.process_id_busy_lock[process_id].release()
+                break
+            self.process_id_busy_lock[process_id].release()
+
+        if free_process:
+            new_delivery = None
+            self.limb_to_queue_lock[first_limb_name].acquire()
+            if len(self.limb_to_queue[first_limb_name]):
+                new_delivery = self.limb_to_queue[first_limb_name].popleft()
+            self.limb_to_queue_lock[first_limb_name].release()
+
+            if new_delivery:
+                new_delivery["process_id"] = free_process
+                self.timing_manager.record_process_input(free_process)
+                self.timing_manager.record_limb_input(first_limb_name)
+                self.socket_handler.send_job(free_process, new_delivery)
+
+        threading.Timer(PERIODIC_JOB_CHECK_DELAY, self.check_for_new_job).start()

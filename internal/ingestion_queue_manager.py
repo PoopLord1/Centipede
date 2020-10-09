@@ -60,17 +60,6 @@ class IngestionQueueManager(object):
         """
 
         next_job = None
-        #
-        # if self.ingestion_queue[0].is_ready():
-        #     next_job = self.ingestion_queue.pop(0)
-        #
-        #     if next_job.repeat:
-        #         new_job = Job(next_job.data_point, next_job.repeat)
-        #         new_job.set_period(next_job.period)
-        #         self.queue_lock.acquire()
-        #         self.ingestion_queue.append(new_job)
-        #         self.queue_lock.release()
-
         if not self.throttled or time.time() - self.last_job_time > self.throttle_period_seconds:
 
             if len(self.immediate_queue) > 0:
@@ -80,9 +69,10 @@ class IngestionQueueManager(object):
             elif len(self.periodic_queue) > 0 and self.periodic_queue[0].is_ready():
                 next_job = self.periodic_queue.pop(0)
 
-                new_job = Job(next_job.data_point, next_job.repeat)
-                new_job.set_period(next_job.period)
-                self.periodic_queue.append(new_job)
+                if next_job.repeat:
+                    new_job = Job(next_job.data_point, next_job.repeat)
+                    new_job.set_period(next_job.period)
+                    self.periodic_queue.append(new_job)
                 self.last_job_time = time.time()
 
         return next_job

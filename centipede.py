@@ -6,6 +6,10 @@ Centipede.py - top-level framework that instantiates and calls the limbs in orde
 from centipede.internal.package import Package
 from centipede.internal import centipede_broker, centipede_logger, resource_generator
 
+import threading
+
+PERIODIC_LINKED_RESOURCES_DELAY = 1
+
 
 class Centipede(object):
     def __init__(self, config=None):
@@ -23,6 +27,8 @@ class Centipede(object):
 
         self.broker = centipede_broker.CentipedeBroker()
 
+        threading.Timer(0, self.update_linked_resources).start()
+
 
     def define_limbs(self, limb_classes):
         self.limb_classes = limb_classes
@@ -37,12 +43,13 @@ class Centipede(object):
             self.broker.create_process(limb.__name__)
 
 
+    def update_linked_resources(self):
+        self.job_generator.add_to_queue(self.broker.grab_linked_resources())
+        threading.Timer(PERIODIC_LINKED_RESOURCES_DELAY, self.update_linked_resources).start()
+
+
     # @text_notification_manager.text_alert_on_exception
     def walk(self):
         for job in self.job_generator.iterate_pages():
-            package = Package()
-
             if job:
                 self.broker.put_data_in_pipeline(job.data_point)
-
-            self.job_generator.add_to_queue(self.broker.grab_linked_resources())

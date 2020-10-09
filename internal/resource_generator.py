@@ -13,7 +13,7 @@ class UrlGenerator(object):
 
 
     def iterate_pages(self):
-        while self.resource_queue.has_next():
+        while True:
             # Pop thing off of IngestionQueue
             resource_url = self.resource_queue.next_resource()
 
