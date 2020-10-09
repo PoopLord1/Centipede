@@ -179,10 +179,10 @@ class RedditScraper(ChromeSeleniumScraper):
 
         username = None
         print(page_url)
-        user_id_match = re.search("reddit\.com/user/([^/]+)/", page_url)
+        user_id_match = re.search("reddit\.com/us?e?r?/([^/]+)", page_url)
         if user_id_match:
             username = user_id_match.group(1)
-        print(username)
+        print("Username: " + username)
 
         info_panel_obj = self.driver.find_element_by_xpath("//body/div/div/div[2]/div[2]/div/div/dIv/div[2]/div[4]/div[2]/div/div")
         # info_panel_obj = self.driver.find_element_by_xpath("//body/div/div/div[2]/div[2]/div/div/div")
@@ -269,9 +269,13 @@ class RedditScraper(ChromeSeleniumScraper):
                 content_link = link_obj.get_attribute("href")
             print(content_link)
 
+            div_with_id = post.find_element_by_xpath(".//div/div")
+            post_id = div_with_id.get_attribute("id")
+            print("Post ID: " + post_id)
+
             print()
 
-            post_data = RedditPost(input_dict={"post_id": "",
+            post_data = RedditPost(input_dict={"post_id": post_id,
                                                "points": score_obj.text,
                                                "post_author": username,
                                                "post_datetime": time_posted_obj.text,
@@ -463,7 +467,8 @@ if __name__ == "__main__":
     scraper = RedditScraper(config_dict)
 
     pkg = Package()
-    scraper.scrape_from_url("http://www.reddit.com/r/judo", pkg)
+    # scraper.scrape_from_url("http://www.reddit.com/r/judo", pkg)
+    scraper.scrape_from_url("http://www.reddit.com/u/AppleSpicer", pkg)
     # scraper.scrape_from_url("https://www.reddit.com/r/KidsAreFuckingStupid/comments/ir38uu/kid_spends_about_150_on_fortnite_and_the_rest_is/", pkg)
     # scraper.scrape_from_url("https://www.reddit.com/r/judo/comments/ir0pmy/collegiate_champion_jeremy_glick_joined_in_the/", pkg)
     print(pkg.__dict__)

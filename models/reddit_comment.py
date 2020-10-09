@@ -13,7 +13,7 @@ class RedditComment(object):
         self.points = ""
         self.subreddit = ""
         self.source = ""
-        self.rank = 0
+        self.rank = -1
 
         if input_dict:
             self.comment_id = input_dict.get("comment_id", "")
@@ -23,7 +23,7 @@ class RedditComment(object):
             self.points = input_dict.get("points", False)
             self.subreddit = input_dict.get("subreddit", "")
             self.source = input_dict.get("source", "")
-            self.rank = input_dict.get("rank", 0)
+            self.rank = input_dict.get("rank", -1)
 
     def __str__(self):
         return "<RedditComment from " + str(self.comment_datetime) + " with comment id " + str(self.comment_id) + ">"
