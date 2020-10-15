@@ -305,8 +305,6 @@ class RedditScraper(ChromeSeleniumScraper):
 
             data_package.reddit_info.append(post_data)
 
-            data_package.linked_resources.append(comments_link)
-
         comment_button_object = self.driver.find_element_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div[2]/div/div/a[3]")
         comment_button_object.click()
         wait_time = random.randrange(5, 15)
