@@ -62,7 +62,7 @@ class RedditScraper(ChromeSeleniumScraper):
             print("Subreddit: " + subreddit)
 
         posts = self.driver.find_elements_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div[2]/div[3]/div/div[4]/div") # assuming 1 based
-        print("Length of posts: " + str(len(posts)))
+        # print("Length of posts: " + str(len(posts)))
         for i, post in enumerate(posts[:8]): # TODO - scroll down more to render more posts
 
             if not post.text:
@@ -70,7 +70,7 @@ class RedditScraper(ChromeSeleniumScraper):
 
             scoring_element = post.find_element_by_xpath(".//div/div/div[1]")
             score_obj = scoring_element.find_element_by_xpath(".//div/div")
-            print("Score: " + score_obj.text)
+            # print("Score: " + score_obj.text)
 
             first_text_in_post = post.find_element_by_xpath(".//div/div/div[2]/div[1]")
             span_obj = None
@@ -82,7 +82,7 @@ class RedditScraper(ChromeSeleniumScraper):
                 pass
 
             pinned = False
-            print("Is pinned? " + str(span_obj_exists))
+            # print("Is pinned? " + str(span_obj_exists))
             # print(span_obj.get_attribute("innerHTML"))
             if (span_obj_exists): #  and "pinned" in span_obj.get_attribute("innerHTML").lower()):
                 pinned = True
@@ -101,14 +101,14 @@ class RedditScraper(ChromeSeleniumScraper):
                 pass
 
             poster_name_objs = metadata_panel.find_elements_by_tag_name("a")
-            print("Author: " + poster_name_objs[0].text)
+            # print("Author: " + poster_name_objs[0].text)
             poster_name = poster_name_objs[0].text
 
             time_posted_objs = metadata_panel.find_elements_by_tag_name("a")
-            print("Time posted: " + time_posted_objs[-1].text)
+            # print("Time posted: " + time_posted_objs[-1].text)
             time_posted = time_posted_objs[-1].text
 
-            print("Promoted: " + str(promoted))
+            # print("Promoted: " + str(promoted))
             title_obj = None
             if promoted:
                 title = "This was an ad; don't worry about the title"
@@ -121,14 +121,14 @@ class RedditScraper(ChromeSeleniumScraper):
                     print("Number of potential H3 objects in the post: " + str(len(title_objs)))
                     title_obj = title_objs[0]
                 title = title_obj.text
-            print("Post title: " + title)
+            # print("Post title: " + title)
 
             if promoted:
                 comments_link = "This was an ad; don't worry about the link for the reddit post"
             else:
                 title_link_obj = title_obj.find_element_by_xpath("../..")
                 comments_link = title_link_obj.get_attribute("href")
-            print("Link to comments: " + comments_link)
+            # print("Link to comments: " + comments_link)
 
             if promoted:
                 content_link = "This was an ad; dont worry about the link to the article"
@@ -141,9 +141,9 @@ class RedditScraper(ChromeSeleniumScraper):
                     content_link = link_obj.get_attribute("href")
                 except NoSuchElementException:
                     content_link = comments_link
-            print("Link to content: " + content_link)
-
-            print()
+            # print("Link to content: " + content_link)
+            #
+            # print()
 
             post_id = ""
             post_id_match = GET_ID_FROM_COMMENTS_PAGE_RE.search(comments_link)
@@ -178,21 +178,38 @@ class RedditScraper(ChromeSeleniumScraper):
         data_package.reddit_info = []
 
         username = None
-        print(page_url)
+        # print(page_url)
         user_id_match = re.search("reddit\.com/us?e?r?/([^/]+)", page_url)
         if user_id_match:
             username = user_id_match.group(1)
-        print("Username: " + username)
+        # print("Username: " + username)
+
+        is_mature_user = False
+        try:
+            mature_warning = self.driver.find_element_by_xpath("//body/div/div/div[2]/div[2]/div/div/div/div/div/h3")
+            if mature_warning.text.upper() == "YOU MUST BE 18+ TO VIEW THIS COMMUNITY":
+                is_mature_user = True
+        except:
+            pass
+
+        if is_mature_user:
+            buttons = self.driver.find_elements_by_tag_name("button")
+            for button in buttons:
+                if button.text.upper() == "YES":
+                    button.click()
+                    break
+
+        time.sleep(wait_time)
 
         info_panel_obj = self.driver.find_element_by_xpath("//body/div/div/div[2]/div[2]/div/div/dIv/div[2]/div[4]/div[2]/div/div")
         # info_panel_obj = self.driver.find_element_by_xpath("//body/div/div/div[2]/div[2]/div/div/div")
 
         cake_day_object = info_panel_obj.find_element_by_xpath("./div/div[4]/div[2]/div/span")
-        print(cake_day_object.text)
+        # print(cake_day_object.text)
         cake_day_datetime = None
 
         total_karma_object = info_panel_obj.find_element_by_xpath("./div/div[4]/div/div/span")
-        print(total_karma_object.text)
+        # print(total_karma_object.text)
 
         data_package.reddit_info.append(RedditUser(input_dict={"user_id": username,
                                                                "total_karma": total_karma_object.text,
@@ -208,7 +225,7 @@ class RedditScraper(ChromeSeleniumScraper):
         for i, post in enumerate(posts):
             scoring_element = post.find_element_by_xpath(".//div/div/div")
             score_obj = scoring_element.find_element_by_xpath(".//div/div")
-            print("Score: " + str(score_obj.text))
+            # print("Score: " + str(score_obj.text))
 
             first_text_in_post = post.find_element_by_xpath(".//div/div/div[2]/div[1]")
             span_obj = None
@@ -220,7 +237,7 @@ class RedditScraper(ChromeSeleniumScraper):
                 pass
 
             pinned = False
-            print(span_obj_exists)
+            # print(span_obj_exists)
             # print(span_obj.get_attribute("innerHTML"))
             if (span_obj_exists):  # and "pinned" in span_obj.get_attribute("innerHTML").lower()):
                 pinned = True
@@ -243,37 +260,37 @@ class RedditScraper(ChromeSeleniumScraper):
                 pass
 
             time_posted_obj = metadata_panel.find_element_by_xpath("./a")
-            print(time_posted_obj.text)
+            # print(time_posted_obj.text)
 
-            print("Promoted: " + str(promoted))
+            # print("Promoted: " + str(promoted))
             if promoted:
                 title_obj = post.find_element_by_xpath(".//div/div/div[2]/div[2]/div/div/h3")
             else:
                 title_obj = post.find_element_by_xpath(".//div/div/div[2]/div/div[2]/div/div/a/div/h3")
-            print(title_obj.text)
+            # print(title_obj.text)
 
             subreddit_obj = post.find_element_by_xpath(".//div/div/div[2]/div/div[2]/div[2]/div/a")
-            print("Subreddit: " + subreddit_obj.text)
+            # print("Subreddit: " + subreddit_obj.text)
 
             if promoted:
                 comments_link = "This was an ad; don't worry about the link for the reddit post"
             else:
                 title_link_obj = post.find_element_by_xpath(".//div/div/div[2]/div/div[2]/div/div/a")
                 comments_link = title_link_obj.get_attribute("href")
-            print(comments_link)
+            # print(comments_link)
 
             if promoted:
                 content_link = "This was an ad; dont worry about the link to the article"
             else:
                 link_obj = post.find_element_by_xpath(".//div/div/div[2]/div/div[2]/div/a")
                 content_link = link_obj.get_attribute("href")
-            print(content_link)
+            # print(content_link)
 
             div_with_id = post.find_element_by_xpath(".//div/div")
             post_id = div_with_id.get_attribute("id")
-            print("Post ID: " + post_id)
+            # print("Post ID: " + post_id)
 
-            print()
+            # print()
 
             post_data = RedditPost(input_dict={"post_id": post_id,
                                                "points": score_obj.text,
@@ -318,8 +335,8 @@ class RedditScraper(ChromeSeleniumScraper):
                     else:
                         last_comment_id = comment_id
 
-                    print("\n")
-                    print("Comment ID: " + full_id_string + " truncated to " + comment_id)
+                    # print("\n")
+                    # print("Comment ID: " + full_id_string + " truncated to " + comment_id)
 
                     points = 0
                     points_obj = comment.find_element_by_xpath(".//div[1]/span")
@@ -327,14 +344,14 @@ class RedditScraper(ChromeSeleniumScraper):
                     points_match = UPVOTE_FORMAT_RE.match(points_string)
                     if points_match:
                         points = points_match.group(0)
-                    print("Points: " + str(points))
+                    # print("Points: " + str(points))
 
                     time_string = time_obj.text
-                    print("Time comment posted: " + time_string)
+                    # print("Time comment posted: " + time_string)
 
                     body_objs = comment.find_elements_by_tag_name("p")
                     body = body_objs[0].text
-                    print("Comment: " + body)
+                    # print("Comment: " + body)
 
                     comment_data = RedditComment(input_dict={"comment_id": comment_id,
                                                              "content": body,
@@ -381,9 +398,9 @@ class RedditScraper(ChromeSeleniumScraper):
         # post_parent = post_obj.parent
         # comments = post_obj.find_elements_by_xpath(".//div[5]/div/div/div/div")
 
-        print(len(comments))
+        # print(len(comments))
 
-        for i, comment in enumerate(comments):
+        for i, comment in enumerate(comments[:50]):
 
             # Sometimes, reddit provides a link to view deeper discussion on a new page
             # This shows up in a div just like any other comment. If we see this, skip it.
@@ -420,7 +437,7 @@ class RedditScraper(ChromeSeleniumScraper):
             # Otherwise, grab all the comment data
             id_obj = comment.find_element_by_xpath("./div/div")
             id = id_obj.get_attribute("id")
-            print(id)
+            # print(id)
 
             expand_button = None
             try:
@@ -431,20 +448,23 @@ class RedditScraper(ChromeSeleniumScraper):
             if expand_button:
                 expand_button.click()
 
-            username_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div/div/a")
+            try:
+                username_obj = comment.find_element_by_xpath("./div/div/div[2]/div/div/div/a")
+            except:
+                username_obj = comment.find_element_by_xpath("./div/div/div[2]/div/div/div/span")
             username = username_obj.text
             print(username)
 
-            flairs_and_points = comment.find_elements_by_xpath("./div/div/div[2]/div[2]/div/span")
+            flairs_and_points = comment.find_elements_by_xpath("./div/div/div[2]/div/div/span")
             points_obj = flairs_and_points[-2]
             points = points_obj.get_attribute("innerHTML")
             print(points)
 
-            time_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div[1]/a") # Invalid xpath?
+            time_obj = comment.find_element_by_xpath("./div/div/div[2]/div/div[1]/a")
             time_string = time_obj.get_attribute("innerHTML")
             print(time_string)
 
-            body_obj = comment.find_element_by_xpath("./div/div/div[2]/div[2]/div[2]/div/p")
+            body_obj = comment.find_element_by_xpath("./div/div/div[2]/div/div[2]/div")
             body = body_obj.text
             print(body)
 
@@ -467,8 +487,5 @@ if __name__ == "__main__":
     scraper = RedditScraper(config_dict)
 
     pkg = Package()
-    # scraper.scrape_from_url("http://www.reddit.com/r/judo", pkg)
-    scraper.scrape_from_url("http://www.reddit.com/u/AppleSpicer", pkg)
-    # scraper.scrape_from_url("https://www.reddit.com/r/KidsAreFuckingStupid/comments/ir38uu/kid_spends_about_150_on_fortnite_and_the_rest_is/", pkg)
-    # scraper.scrape_from_url("https://www.reddit.com/r/judo/comments/ir0pmy/collegiate_champion_jeremy_glick_joined_in_the/", pkg)
+    scraper.scrape_from_url("https://www.reddit.com/r/SelfAwarewolves/comments/ga057f/a_trans_exclusionist_has_a_brush_with_self/", pkg)
     print(pkg.__dict__)
