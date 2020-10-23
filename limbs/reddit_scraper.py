@@ -5,14 +5,13 @@ RedditScraper.py - a Limb that scrapes data from a reddit page.
 from selenium.common.exceptions import NoSuchElementException
 
 from centipede.limbs.abstract.ChromeSeleniumScraper import ChromeSeleniumScraper
-from centipede.models.comment_data import CommentData
 from centipede.internal.package import Package
 from centipede.internal import centipede_logger
 from centipede.models.reddit_post import RedditPost
 from centipede.models.reddit_comment import RedditComment
 from centipede.models.reddit_user import RedditUser
 
-import re, time, base64, urllib, numpy, json, logging, random
+import re, time, logging, random
 
 NUMBER_POSTS_TO_SCRAPE = 30 # Scrape 30 posts on infinitely-loading pages, if that is not too much
 
